@@ -18,10 +18,9 @@
   --content-width: 1090px;
   --sidebar-width: 292px;
 
-  /* Desktop frame: roughly a 13" MacBook Air's screen (1440 x 900, 16:10), a touch wider.
-     Wider windows get the dark surround; full-screen pieces cap at the frame height. */
-  --frame-width: 1600px;
-  --frame-height: 900px;
+  /* Caps the frame on very wide monitors (picked with the dev width slider); the dark surround
+     shows past this width. Below it the frame fills the window edge to edge. */
+  --frame-width: 2600px;
   --surround: #1c1c1c;
 }
 
@@ -32,6 +31,9 @@
   }
 
   #root {
+    /* Only the hero's own aspect-ratio (.home-header, .study-hero) is otherwise capped, via
+       max-height, so it never grows taller than the window on ultrawide monitors. */
+    width: 100%;
     max-width: var(--frame-width);
     min-height: 100vh;
     margin: 0 auto;
@@ -472,11 +474,12 @@ a {
 .home-header {
   position: relative;
   overflow: hidden;
-  /* Fills the first screen, leaving room for the top padding (25px), the caption (~30px) and a
-     small gap before the bottom edge. */
-  /* A full-bleed backdrop for the top of Work: fills the first screen but leaves ~100px of the
-     first case study peeking above the fold (13px row gap + 100px). */
-  height: calc(100svh - 113px);
+  /* A full-bleed backdrop for the top of Work: 16:9 is the preferred shape, but max-height stops
+     it from growing taller than the window on wide/short monitors — it just goes wider than
+     16:9 instead of poking past the fold. */
+  aspect-ratio: 16 / 9;
+  max-height: 100vh;
+  max-height: 100svh;
   cursor: pointer;
   width: 100%;
   /* background-color comes from the time-of-day palette: shown until the first frame, or without WebGL */
@@ -499,13 +502,15 @@ a {
   will-change: transform, opacity;
 }
 
-/* A blurred, scaled-up copy of the live reel (drawn each frame in HomeHeader). */
+/* A blurred, scaled-up copy of the live reel (drawn each frame in HomeHeader). No horizontal
+   bleed: the frame is edge-to-edge now (no dark margin to absorb it), and clip-path already
+   hides the left/right/top bleed anyway, so widening the box there only opens a scrollbar. */
 .hh-glow {
   position: absolute;
-  inset: -24px;
+  inset: -24px 0;
   z-index: -1;
-  width: calc(100% + 48px);
-  height: calc(100% + 48px); /* even on every side, so it reads as light, not a drop shadow */
+  width: 100%;
+  height: calc(100% + 48px); /* even top and bottom, so it reads as light, not a drop shadow */
   filter: blur(40px) saturate(1.3);
   visibility: hidden; /* revealed by GSAP with the header */
   pointer-events: none;
@@ -522,8 +527,11 @@ a {
 .cs-inner {
   display: grid;
   grid-template-columns: calc(var(--media) * 100%) 1fr;
+  /* No min-height floor: the frame's width now depends on window height as well as width (see
+     #root), so a fixed floor here could once again demand more width than the sidebar layout
+     has to give. aspect-ratio alone derives height from whatever width it actually gets, so it
+     can never force an overflow. */
   aspect-ratio: 1090 / 418;
-  min-height: 360px;
   will-change: transform;
 }
 
@@ -1017,8 +1025,12 @@ a {
 }
 
 .study-hero {
-  height: 100vh;
-  height: min(100svh, var(--frame-height));
+  /* Same 16:9-capped shape as .home-header, so the hero lands at the exact size the home card
+     grew to (see expandToHero in pageTransition.ts) with no pop between the transition and the
+     real page. */
+  aspect-ratio: 16 / 9;
+  max-height: 100vh;
+  max-height: 100svh;
 }
 
 .study-section-text {
@@ -1560,13 +1572,6 @@ a {
   /* Phones: art first, full-bleed, sized so the name and bio below it still land on the first screen. */
   .site-header {
     padding: 0;
-  }
-
-  /* Keep the glow inside the screen edges so it can't cause sideways scrolling. */
-  .hh-glow {
-    inset: -24px 0;
-    width: 100%;
-    height: calc(100% + 48px);
   }
 
   .home-header {

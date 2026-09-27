@@ -39,15 +39,13 @@ export function expandToHero(media: HTMLElement, pageRoot: HTMLElement | null): 
       },
     })
 
-    // Grow into the case study's hero slot: right of the sidebar, inside the desktop frame
-    // (#root is capped at --frame-width and centred), no taller than --frame-height.
+    // Grow into the case study's hero slot: right of the sidebar, filling the full-width frame.
+    // Same 16:9-capped shape as .study-hero (aspect-ratio + max-height), so the overlay lands at
+    // exactly the size the real hero renders at underneath.
     const frame = document.getElementById('root')!.getBoundingClientRect()
-    const frameHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--frame-height')) || Infinity
-    tl.to(
-      overlay,
-      { left: frame.left + sidebar, top: 0, width: frame.width - sidebar, height: Math.min(window.innerHeight, frameHeight) },
-      0,
-    )
+    const heroWidth = frame.width - sidebar
+    const heroHeight = Math.min((heroWidth * 9) / 16, window.innerHeight)
+    tl.to(overlay, { left: frame.left + sidebar, top: 0, width: heroWidth, height: heroHeight }, 0)
       // Settle the inner layers to the hero's resting state (no hover zoom, neutral parallax).
       .to(clone.querySelectorAll('.cs-hover, .cs-media-scale'), { scale: 1 }, 0)
       // The clone's copied transform parses as px, so zero both units to reach the hero's neutral parallax.
