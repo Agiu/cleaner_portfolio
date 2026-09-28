@@ -31,8 +31,6 @@
   }
 
   #root {
-    /* Only the hero's own aspect-ratio (.home-header, .study-hero) is otherwise capped, via
-       max-height, so it never grows taller than the window on ultrawide monitors. */
     width: 100%;
     max-width: var(--frame-width);
     min-height: 100vh;
@@ -160,6 +158,30 @@ a {
   inset: 0;
   width: 12.5px;
   height: 7px;
+}
+
+/* Compact variant: a straight down arrow sits just after the label, and the rule spans only the
+   two instead of the full column. */
+.arrow-link--down {
+  display: inline-block;
+}
+
+.arrow-link--down .arrow-link-row {
+  justify-content: flex-start;
+  gap: 8px;
+  padding-right: 0;
+}
+
+/* The rule's SVG is 234px wide; take it out of the sizing so it just fills the label + arrow. */
+.arrow-link--down .arrow-link-rule {
+  width: 0;
+  min-width: 100%;
+}
+
+.arrow-link--down .arrow-link-arrow,
+.arrow-link--down .arrow-link-icon {
+  width: 8px;
+  height: 11px;
 }
 
 .arrow-link-rule {
@@ -474,16 +496,53 @@ a {
 .home-header {
   position: relative;
   overflow: hidden;
-  /* A full-bleed backdrop for the top of Work: 16:9 is the preferred shape, but max-height stops
-     it from growing taller than the window on wide/short monitors — it just goes wider than
-     16:9 instead of poking past the fold. */
-  aspect-ratio: 16 / 9;
-  max-height: 100vh;
-  max-height: 100svh;
-  cursor: pointer;
+  /* A full-bleed backdrop for the top of Work: exactly one window tall, so it runs to the bottom
+     edge and the case studies wait below the fold. */
+  height: 100vh;
+  height: 100svh;
   width: 100%;
   /* background-color comes from the time-of-day palette: shown until the first frame, or without WebGL */
   visibility: hidden; /* revealed by GSAP */
+}
+
+/* Call to action under the reel's canvas-drawn title; HomeHeader places and fades it each frame. */
+.hh-cta {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #fff;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+/* Hit area over the canvas-drawn progress bar: one 26px button per segment, 4px apart, each
+   taller than the 2px line so it's easy to press. HomeHeader places it each frame. */
+.hh-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  gap: 4px;
+}
+
+.hh-progress button {
+  width: 26px;
+  height: 24px;
+  margin-top: -11px; /* centres the 24px target on the line */
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.hh-progress button:focus-visible {
+  outline: 1px solid #fff;
+  outline-offset: 2px;
+}
+
+.hh-cta .arrow-link-icon,
+.hh-cta .arrow-link-rule {
+  filter: invert(1);
 }
 
 .hh-field {
@@ -921,6 +980,16 @@ a {
   font-weight: 500;
 }
 
+/* About's Go Back bar (SiteLayout): a collapsed slot at the top of the sidebar that GSAP opens. */
+.site-back {
+  height: 0;
+  overflow: hidden;
+}
+
+.site-back .study-back {
+  visibility: hidden; /* shown by GSAP as it drops in */
+}
+
 .study-main {
   display: flex;
   flex-direction: column;
@@ -1025,12 +1094,10 @@ a {
 }
 
 .study-hero {
-  /* Same 16:9-capped shape as .home-header, so the hero lands at the exact size the home card
-     grew to (see expandToHero in pageTransition.ts) with no pop between the transition and the
-     real page. */
-  aspect-ratio: 16 / 9;
-  max-height: 100vh;
-  max-height: 100svh;
+  /* One window tall, like .home-header, so the hero lands at the exact size the home card grew to
+     (see expandToHero in pageTransition.ts) with no pop between the transition and the real page. */
+  height: 100vh;
+  height: 100svh;
 }
 
 .study-section-text {

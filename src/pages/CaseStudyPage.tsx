@@ -130,7 +130,7 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
           </nav>
         </div>
 
-        <Link to="/" className="study-back intro-fade" onClick={goBack}>
+        <Link to="/" className="study-back back-drop" onClick={goBack}>
           ← Go Back
         </Link>
       </aside>

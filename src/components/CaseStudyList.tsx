@@ -11,9 +11,10 @@ export function CaseStudyList() {
 
   return (
     <>
-      <section className="cs-list" aria-label="Case studies">
-        {featured.map((study) => (
-          <CaseStudy key={study.slug} study={study} />
+      <section id="work" className="cs-list" aria-label="Case studies">
+        {/* The first row sits right under the header, so it's already there when you scroll down. */}
+        {featured.map((study, i) => (
+          <CaseStudy key={study.slug} study={study} settled={i === 0} />
         ))}
       </section>
 

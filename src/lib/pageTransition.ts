@@ -39,22 +39,26 @@ export function expandToHero(media: HTMLElement, pageRoot: HTMLElement | null): 
       },
     })
 
-    // Grow into the case study's hero slot: right of the sidebar, filling the full-width frame.
-    // Same 16:9-capped shape as .study-hero (aspect-ratio + max-height), so the overlay lands at
-    // exactly the size the real hero renders at underneath.
+    // Grow into the case study's hero slot: right of the sidebar, filling the full-width frame and
+    // running to the bottom of the window, same as .study-hero, so the overlay lands at exactly the
+    // size the real hero renders at underneath.
     const frame = document.getElementById('root')!.getBoundingClientRect()
     const heroWidth = frame.width - sidebar
-    const heroHeight = Math.min((heroWidth * 9) / 16, window.innerHeight)
+    const heroHeight = window.innerHeight
+    // The hero's scrubbed parallax (MediaBlock) runs from "top bottom" to "bottom top", so at scroll 0
+    // it sits at this progress, not the midpoint (only equal when the hero is a full viewport tall).
+    const heroProgress = window.innerHeight / (window.innerHeight + heroHeight)
+
     tl.to(overlay, { left: frame.left + sidebar, top: 0, width: heroWidth, height: heroHeight }, 0)
-      // Settle the inner layers to the hero's resting state (no hover zoom, neutral parallax).
+      // Settle the inner layers to the hero's resting state (no hover zoom, its scroll-0 parallax).
       .to(clone.querySelectorAll('.cs-hover, .cs-media-scale'), { scale: 1 }, 0)
-      // The clone's copied transform parses as px, so zero both units to reach the hero's neutral parallax.
-      .to(clone.querySelector('.cs-parallax'), { y: 0, yPercent: 0 }, 0)
+      // The clone's copied transform parses as px, so zero y and drive yPercent (MediaBlock: -7 -> 7).
+      .to(clone.querySelector('.cs-parallax'), { y: 0, yPercent: -7 + 14 * heroProgress }, 0)
 
     // Placeholder-only mock-up card (absent once a real image is set).
     const float = clone.querySelector('.cs-float')
     if (float) {
-      tl.to(float, { y: 0 }, 0).to(clone.querySelector('.cs-float-hover'), { y: 0, width: '42%' }, 0)
+      tl.to(float, { y: 60 - 120 * heroProgress }, 0).to(clone.querySelector('.cs-float-hover'), { y: 0, width: '42%' }, 0)
     }
 
     // Clear the rest of the home page out of the way while it grows.

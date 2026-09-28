@@ -12,6 +12,12 @@ type Box = { x: number; y: number; w: number; h: number }
 /** Where scenes draw: box is in stage units, placed at (x, y) in the frame and scaled by k. */
 type Stage = { x: number; y: number; k: number; box: Box }
 
+/**
+ * Where the DOM overlays sit: the call to action under the description (which it doesn't fade or
+ * lift with), and the progress bar's hit area, whose segments are 26px wide with 4px gaps.
+ */
+export type Hud = { x: number; y: number; bar: { x: number; y: number }; idx: number }
+
 type SceneCtx = {
   ctx: CanvasRenderingContext2D
   box: Box
@@ -26,17 +32,13 @@ type SceneCtx = {
 }
 
 type Scene = {
-  /** The case study on this site, if there is one; the reel links to it. */
-  slug?: string
-  title: string
-  meta: string
-  tags: string
-  readouts: (s: SceneCtx) => [string, string][]
+  /** One sentence on the project, shown bottom left while its scene plays. */
+  description: string
   draw: (s: SceneCtx) => void
 }
 
 const WHITE: RGB = [1, 1, 1]
-const SCENE_SECONDS = 6.5
+const SCENE_SECONDS = 8
 /**
  * Scenes hand over across this overlap rather than cutting or wiping: the outgoing one draws
  * itself off (its draw-on in reverse) while the incoming one draws on in the same space.
@@ -46,8 +48,6 @@ const HANDOFF_SECONDS = 1.5
 const LIFE_SECONDS = SCENE_SECONDS + HANDOFF_SECONDS
 /** How far into a handoff the arriving scene shows (and how far before its end the leaving one goes). */
 const SHOWN_SECONDS = 0.5
-/** How long a readout takes to swap one word for another. */
-const READOUT_FADE = 0.4
 const TAU = Math.PI * 2
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
@@ -70,36 +70,24 @@ function seeded(seed: number) {
 
 type Pt = [number, number]
 
-/** Catmull-Rom through the points, sampled evenly per segment. */
-function spline(pts: Pt[], per = 24): Pt[] {
-  const out: Pt[] = []
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)]
-    for (let k = 0; k < per; k++) {
-      const t = k / per, t2 = t * t, t3 = t2 * t
-      out.push([0, 1].map((d) =>
-        0.5 * (2 * p1[d] + (-p0[d] + p2[d]) * t + (2 * p0[d] - 5 * p1[d] + 4 * p2[d] - p3[d]) * t2 + (-p0[d] + 3 * p1[d] - 3 * p2[d] + p3[d]) * t3),
-      ) as Pt)
-    }
-  }
-  out.push(pts[pts.length - 1])
-  return out
-}
-
-/** Strokes a polyline up to a fraction of its length; returns the head point and heading. */
-function strokeTo(ctx: CanvasRenderingContext2D, pts: Pt[], frac: number) {
-  const n = Math.max(1, Math.floor(frac * (pts.length - 1)))
-  ctx.beginPath()
-  ctx.moveTo(pts[0][0], pts[0][1])
-  for (let i = 1; i <= n; i++) ctx.lineTo(pts[i][0], pts[i][1])
-  ctx.stroke()
-  const a = pts[Math.max(0, n - 1)], b = pts[n]
-  return { head: b, angle: Math.atan2(b[1] - a[1], b[0] - a[0]) }
-}
-
 function label(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size = 10, weight = 500) {
   ctx.font = `${weight} ${size}px "Open Sauce One", system-ui, sans-serif`
   ctx.fillText(text, x, y)
+}
+
+/** Greedy word wrap at the context's current font. */
+function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  const lines: string[] = []
+  let line = ''
+  for (const word of text.split(' ')) {
+    const next = line ? `${line} ${word}` : word
+    if (line && ctx.measureText(next).width > maxWidth) {
+      lines.push(line)
+      line = word
+    } else line = next
+  }
+  if (line) lines.push(line)
+  return lines
 }
 
 // ---------- Scenes ----------
@@ -117,15 +105,8 @@ const xbox: Scene = (() => {
     return easeOutCubic(g / (1 - a / 2))
   }
   return {
-    slug: 'xbox',
-    title: 'Xbox Arcade',
-    meta: 'Product Design · 2026',
-    tags: 'CLOUD GAMING / GROUP DECISIONS / DISCORD',
-    readouts: ({ p }) => [
-      ['PARTY', '4 / 4'],
-      ['VOTES', String(Math.min(23, Math.floor(p * 30))).padStart(2, '0')],
-      ['PICK', p > LAND[0] + 0.04 ? games[1] : 'SPINNING'],
-    ],
+    description:
+      'A cloud-gaming product that helps friend groups discover, decide on, and instantly play games together without leaving Discord.',
     draw: ({ ctx, box, p, t, reveal, col, pal }) => {
       // The wheel sits dead centre, flanked by the party's ranking (left) and the console (right).
       // Frames too narrow for the flanks get the wheel alone.
@@ -309,505 +290,483 @@ const xbox: Scene = (() => {
 })()
 
 const foreflight: Scene = (() => {
-  // A wireframe of the web flow I built: Track Logs table -> kebab -> "Link to Logbook" ->
-  // the "Add to Logbook" picker (entries from the case study) -> toggle -> linked.
-  const logs = [
-    ['JUN 14', 'KHYI → KAUS', 'N1327T', '0.9'],
-    ['JUN 14', 'KAUS → KHYI', 'N1327T', '1.6'],
-    ['JUN 12', 'KSAT → KHYI', 'N4592B', '1.4'],
-    ['DEC 07', 'KAUS → KDAL', 'N1327T', '1.1'],
-    ['DEC 06', 'KDAL → KAUS', 'N1327T', '1.2'],
-    ['NOV 28', 'KHYI → KHYI', 'N4592B', '0.6'],
+  // The work is under NDA, so no product UI: a flight instead. A small plane cruises at a steady
+  // height, following its route through the mountains, while the land streams past beneath it
+  // and airports slide by along the way. Same isometric camera as Project Open.
+  //
+  // The land is a long strip: X runs along the flight (0..LENGTH), Z across it (-WIDE..WIDE),
+  // height is y. The plane stays over X = scroll, which advances at SPEED; the frame shows WINDOW
+  // either side of it.
+  const LENGTH = 17, WIDE = 2.8, SPEED = 1.15, START = 1.6, WINDOW = 3.2
+  /** The route across the strip: a gentle weave the plane follows. */
+  const routeZ = (x: number) => 0.55 * Math.sin(x * 0.55 + 0.4) + 0.22 * Math.sin(x * 1.25 + 2)
+  const routeSlope = (x: number) => 0.3025 * Math.cos(x * 0.55 + 0.4) + 0.275 * Math.cos(x * 1.25 + 2)
+  const AIRPORTS = [
+    // Passing under the plane about 1.5s, 4.5s and 7s into the scene.
+    { code: 'KRIL', x: 3.3 },
+    { code: 'KEGE', x: 6.8 },
+    { code: 'KASE', x: 9.7 },
   ]
-  // Entries exactly as in the case study's final design (route | tail | date | total).
-  type Entry = { route: string; tail: string; date: string; total: string; linked?: boolean }
-  const recent: Entry[] = [
-    { route: 'KAUS to KDAL', tail: 'N1327T (PA32)', date: 'Dec 7, 2023', total: '1.1 Total' },
-    { route: 'KHYI to KAUS', tail: 'N1327T (PA32)', date: 'Jun 14, 2024', total: '0.9 Total', linked: true },
-    { route: 'KAUS to KSAT', tail: 'N1327T (PA32)', date: 'Jun 14, 2024', total: '0.7 Total', linked: true },
-    { route: 'KSAT to KHYI', tail: 'N4592B (C172)', date: 'Jun 12, 2024', total: '1.4 Total' },
-  ]
-  const recommended: Entry[] = [
-    { route: 'KAUS to KHYI', tail: 'N1327T (PA32)', date: 'Jun 14, 2024', total: '1.6 Total' },
-    { route: 'KSAT to KAUS', tail: 'N4592B (C172)', date: 'Jun 20, 2024', total: '0.8 Total' },
-  ]
-  const created: Entry = { route: '68ME → 68ME', tail: 'N1327T (PA32)', date: 'Today', total: '0.8 Total', linked: true }
-  const ROW = 1 // the track log being linked
-  // Beats, as fractions of the scene.
-  const MENU = 0.14, CLICK = 0.26, MODAL = 0.26, TOGGLE = 0.5, FLOW = 0.53, CREATE = 0.72
-  const at = (p: number, a: number, b: number) => clamp01((p - a) / (b - a))
-  const statusOf = (p: number) => (p < CLICK ? 'TRACK LOGS' : p < TOGGLE ? 'SELECT ENTRY' : p < CREATE ? 'LINKED' : 'ENTRY CREATED')
 
-  const rrect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r = 4) => {
-    ctx.beginPath()
-    ctx.roundRect(x, y, w, h, r)
+  // Terrain: peaks scattered along the strip with some ripple, and a valley carved along the
+  // route so the airports sit on low ground.
+  const rnd = seeded(7)
+  const peaks = Array.from({ length: 60 }, () => ({
+    x: rnd() * LENGTH, z: (rnd() * 2 - 1) * WIDE, h: 0.55 + rnd() * 1.05, r: 0.45 + rnd() * 0.5,
+  }))
+  const height = (x: number, z: number) => {
+    let h = 0
+    for (const pk of peaks) {
+      const d2 = (x - pk.x) ** 2 + (z - pk.z) ** 2
+      if (d2 < 9 * pk.r * pk.r) h = Math.max(h, pk.h * Math.exp(-d2 / (pk.r * pk.r)))
+    }
+    h += 0.06 * Math.sin(x * 2.3 + 1.1) * Math.cos(z * 1.9 - 0.4) + 0.04 * Math.sin(x * 5.1 - z * 4.3)
+    const valley = Math.exp(-((z - routeZ(x)) ** 2) / (0.5 * 0.5))
+    return Math.max(0, h * (1 - 0.8 * valley))
   }
-  // Wireframe placeholder text.
-  const bar = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number) => ctx.fillRect(x, y - 3, w, 4)
-  const cursor = (ctx: CanvasRenderingContext2D, x: number, y: number, col: SceneCtx['col'], press: number, alpha: number) => {
-    ctx.save()
-    ctx.globalAlpha *= alpha
-    ctx.translate(x, y)
-    ctx.scale(1 - press * 0.15, 1 - press * 0.15)
-    ctx.beginPath()
-    ctx.moveTo(0, 0)
-    ctx.lineTo(0, 15)
-    ctx.lineTo(4, 11)
-    ctx.lineTo(7, 17)
-    ctx.lineTo(9, 16)
-    ctx.lineTo(6, 10)
-    ctx.lineTo(11, 10)
-    ctx.closePath()
-    ctx.fillStyle = col(WHITE, 1)
-    ctx.fill()
-    ctx.restore()
+
+  // Contours: marching squares over the strip at every LEVEL_STEP, done once. Segments are
+  // binned by level, by how far across the strip they are, and by CHUNK along it, so a frame
+  // strokes only the chunks in view, each faded by its distance from the plane.
+  const STEP = 0.09, LEVEL_STEP = 0.1, LEVELS = 16, BANDS = 4, CHUNK = 0.8
+  const NX = Math.round(LENGTH / STEP), NZ = Math.round((2 * WIDE) / STEP)
+  const hs: number[] = []
+  for (let j = 0; j <= NZ; j++) for (let i = 0; i <= NX; i++) hs.push(height(i * STEP, -WIDE + j * STEP))
+  const CHUNKS = Math.ceil(LENGTH / CHUNK)
+  const bins: number[][][][] = Array.from({ length: LEVELS }, () =>
+    Array.from({ length: BANDS }, () => Array.from({ length: CHUNKS }, () => [])),
+  )
+  for (let li = 0; li < LEVELS; li++) {
+    const L = (li + 0.5) * LEVEL_STEP
+    for (let j = 0; j < NZ; j++) {
+      for (let i = 0; i < NX; i++) {
+        const c = [hs[j * (NX + 1) + i], hs[j * (NX + 1) + i + 1], hs[(j + 1) * (NX + 1) + i + 1], hs[(j + 1) * (NX + 1) + i]]
+        const pos: Pt[] = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]]
+        const hits: Pt[] = []
+        for (let e = 0; e < 4; e++) {
+          const a = c[e], b = c[(e + 1) % 4]
+          if (a < L !== b < L) {
+            const u = (L - a) / (b - a), pa = pos[e], pb = pos[(e + 1) % 4]
+            hits.push([(pa[0] + (pb[0] - pa[0]) * u) * STEP, -WIDE + (pa[1] + (pb[1] - pa[1]) * u) * STEP])
+          }
+        }
+        for (let k = 0; k + 1 < hits.length; k += 2) {
+          const [x0, z0] = hits[k], [x1, z1] = hits[k + 1]
+          const band = Math.min(BANDS - 1, Math.floor(clamp01((Math.abs((z0 + z1) / 2) / WIDE - 0.3) / 0.7) * BANDS))
+          const chunk = Math.min(CHUNKS - 1, Math.floor((x0 + x1) / 2 / CHUNK))
+          bins[li][band][chunk].push(x0, z0, x1, z1)
+        }
+      }
+    }
   }
+
+  // Cruise clear of everything on the route.
+  let highest = 0
+  for (let x = 0; x <= LENGTH; x += 0.05) highest = Math.max(highest, height(x, routeZ(x)))
+  const CRUISE = highest + 0.45
+
+  // A small wireframe plane, in its own frame: forward, up, right.
+  const PLANE: V3[][] = [
+    [[0.24, 0, 0], [0.16, 0.03, -0.025], [-0.2, 0.015, -0.01], [-0.24, 0.03, 0], [-0.2, 0.015, 0.01], [0.16, 0.03, 0.025], [0.24, 0, 0]],
+    [[0.24, 0, 0], [0.14, -0.02, 0], [-0.22, 0.01, 0]],
+    [[0.1, 0.02, -0.3], [0.04, 0.02, -0.3], [0.0, 0.02, 0], [0.04, 0.02, 0.3], [0.1, 0.02, 0.3], [0.12, 0.02, 0], [0.1, 0.02, -0.3]],
+    [[-0.15, 0.02, -0.1], [-0.2, 0.02, -0.1], [-0.22, 0.02, 0], [-0.2, 0.02, 0.1], [-0.15, 0.02, 0.1], [-0.14, 0.02, 0], [-0.15, 0.02, -0.1]],
+    [[-0.15, 0.02, 0], [-0.22, 0.11, 0], [-0.25, 0.11, 0], [-0.24, 0.03, 0]],
+  ]
 
   return {
-    slug: 'foreflight',
-    title: 'ForeFlight',
-    meta: 'Software Engineering · 2024',
-    tags: 'TRACK LOGS / LOGBOOK / WEB APP',
-    readouts: ({ p }) => [
-      ['TRACK LOG', 'KAUS → KHYI'],
-      ['TOTAL', '1.6 HRS'],
-      ['STATUS', statusOf(p)],
-    ],
-    draw: ({ ctx, box, p, t, reveal, col, pal }) => {
-      ctx.lineWidth = 1
+    description: 'Under NDA: a system that links flight telemetry from ForeFlight’s Track Logs to pilots’ digital logbooks.',
+    draw: ({ ctx, box, t, reveal, col, pal }) => {
       const cx = box.x + box.w / 2, cy = box.y + box.h / 2
-      // Both windows are sized to their content and centred as a pair: the app on the left, the
-      // picker beside it. Narrow frames get the picker alone.
-      const narrow = box.w < 880
-      // Wide frames keep a margin above and below, clear of the HUD; phones need every pixel. Rows
-      // never squash below legibility: on short frames the list just scrolls under the footer.
-      const room = box.h - (narrow ? 0 : 24)
-      const rowH = Math.max(34, Math.min(44, (room - 190) / 6))
-      const mw = narrow ? Math.min(box.w, 460) : 430, mh = Math.min(room, 190 + rowH * 6)
-      const gapX = 96
-      const ww = narrow ? 0 : Math.min(520, box.w - 40 - gapX - mw)
-      const left = cx - (narrow ? mw : ww + gapX + mw) / 2
-      // The picker: slides in on the click, and back out as the scene draws itself off.
-      const m = at(p, MODAL, MODAL + 0.08) * reveal
-      // ---- Web app window: Track Logs ----
-      // Centred on its own until the picker arrives, then it glides left to make room for it.
-      const tRowH = Math.min(40, rowH * 0.92)
-      const wh = 94 + logs.length * tRowH
-      const wx = left + (1 - easeInOutCubic(m)) * (gapX + mw) / 2, wy = cy - wh / 2
-      const rowY = (i: number) => wy + 78 + i * tRowH
-      const colX = [16, 0.2, 0.52, 0.8].map((f, i) => (i === 0 ? wx + f : wx + ww * f))
-      if (!narrow) {
-        ctx.strokeStyle = col(pal.hi, 0.55)
-        rrect(ctx, wx, wy, ww, wh * reveal, 6)
-        ctx.stroke()
-        // Title bar + nav.
-        ctx.beginPath()
-        ctx.moveTo(wx, wy + 28)
-        ctx.lineTo(wx + ww, wy + 28)
-        ctx.stroke()
-        ;[0, 1, 2].forEach((k) => {
-          ctx.beginPath()
-          ctx.arc(wx + 14 + k * 12, wy + 14, 3, 0, TAU)
-          ctx.stroke()
-        })
-        ctx.fillStyle = col(WHITE, 0.9)
-        label(ctx, 'Track Logs', wx + 16, wy + 52, 12, 600)
-        ctx.fillStyle = col(pal.hi, 0.25)
-        bar(ctx, wx + ww - 120, wy + 48, 100)
-        // Column heads.
-        ctx.fillStyle = col(WHITE, 0.45)
-        ;['DATE', 'ROUTE', 'AIRCRAFT', 'HRS'].forEach((h, i) => label(ctx, h, colX[i], wy + 70, 8))
-        logs.forEach((row, i) => {
-          const a = clamp01(reveal * 1.6 - i * 0.12)
-          if (a <= 0) return
-          const y = rowY(i)
-          const active = i === ROW ? ramp(p, MENU - 0.04, MENU) : 0
-          if (active > 0) {
-            ctx.fillStyle = col(pal.mid, 0.16 * active)
-            ctx.fillRect(wx + 6, y, ww - 12, tRowH - 4)
-          }
-          ctx.strokeStyle = col(pal.hi, 0.18 * a)
-          ctx.beginPath()
-          ctx.moveTo(wx + 10, y + tRowH - 2)
-          ctx.lineTo(wx + ww - 10, y + tRowH - 2)
-          ctx.stroke()
-          const ty = y + tRowH / 2 + 3
-          ctx.fillStyle = col(WHITE, 0.55 * a)
-          label(ctx, row[0], colX[0], ty, 10)
-          ctx.fillStyle = col(WHITE, 0.95 * a)
-          label(ctx, row[1], colX[1], ty, 10, 600)
-          ctx.fillStyle = col(WHITE, 0.6 * a)
-          label(ctx, row[2], colX[2], ty, 10)
-          label(ctx, row[3], colX[3], ty, 10)
-          // Kebab.
-          ctx.fillStyle = col(WHITE, 0.6 * a)
-          for (let d = -1; d <= 1; d++) ctx.fillRect(wx + ww - 22, ty - 4 + d * 4, 2, 2)
-          // Linked badge, once this track log is linked.
-          if (i === ROW && p > FLOW + 0.12) {
-            const b = at(p, FLOW + 0.12, FLOW + 0.2)
-            ctx.strokeStyle = col(pal.hi, b)
-            rrect(ctx, colX[2] + 62, ty - 10, 50, 14, 7)
-            ctx.stroke()
-            ctx.fillStyle = col(pal.hi, b)
-            label(ctx, 'LINKED', colX[2] + 70, ty + 1, 8, 600)
-          }
-        })
-        // Kebab menu.
-        const menu = at(p, MENU, MENU + 0.05) * (1 - at(p, CLICK + 0.02, CLICK + 0.06))
-        if (menu > 0) {
-          const mx = wx + ww - 150, my = rowY(ROW) + tRowH - 6
-          ctx.fillStyle = col(pal.lo, 1)
-          rrect(ctx, mx, my, 132, 78 * menu, 5)
-          ctx.fill()
-          ctx.strokeStyle = col(WHITE, 0.6)
-          ctx.stroke()
-          // Items fade in as the menu opens, rather than appearing once it's there.
-          const items = clamp01((menu - 0.4) / 0.6)
-          if (items > 0) {
-            ctx.fillStyle = col(pal.mid, 0.3 * items)
-            ctx.fillRect(mx + 4, my + 6, 124, 20)
-            ctx.fillStyle = col(WHITE, 0.95 * items)
-            label(ctx, 'Link to Logbook', mx + 12, my + 20, 10, 600)
-            ctx.fillStyle = col(WHITE, 0.3 * items)
-            bar(ctx, mx + 12, my + 44, 70)
-            bar(ctx, mx + 12, my + 64, 90)
-          }
-        }
+      const ppu = Math.min(box.h * 0.2, box.w / 2 / 3.2)
+      const scroll = START + SPEED * t
+      const yaw = ((28 + 6 * Math.sin(t * 0.25)) * Math.PI) / 180, pitch = (30 * Math.PI) / 180
+      const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch)
+      // Orthographic, following the plane: the world slides by as scroll advances.
+      const project = (x: number, y: number, z: number): Pt => {
+        const X = x - scroll
+        const x1 = X * cyw + z * syw, z1 = z * cyw - X * syw
+        return [cx + x1 * ppu, cy - ((y - 0.95) * cp - z1 * sp) * ppu]
       }
-
-      // ---- "Add to Logbook" picker, laid out like the final design ----
-      const mx = (narrow ? left : left + ww + gapX) + (1 - easeOutCubic(m)) * 40
-      const my = cy - mh / 2
-      let linkedRow: Pt | null = null
-      let toggleAt: Pt = [mx + 30, my + 200]
-      let createAt: Pt = [mx + mw / 2, my + mh - 40]
-      if (m > 0) {
-        // Relative to the scene's own fade (see drawScene).
-        const sceneAlpha = ctx.globalAlpha
-        ctx.globalAlpha = sceneAlpha * m
-        ctx.fillStyle = col(pal.lo, 1)
-        rrect(ctx, mx, my, mw, mh, 8)
-        ctx.fill()
-        ctx.strokeStyle = col(WHITE, 0.7)
-        ctx.stroke()
-        // Title bar.
+      const path = (pts: V3[]) => {
         ctx.beginPath()
-        ctx.moveTo(mx, my + 36)
-        ctx.lineTo(mx + mw, my + 36)
-        ctx.stroke()
-        ctx.fillStyle = col(WHITE, 0.95)
-        ctx.textAlign = 'center'
-        label(ctx, 'Add to Logbook', mx + mw / 2, my + 23, 11, 600)
-        ctx.textAlign = 'left'
-        ctx.strokeStyle = col(WHITE, 0.55)
-        ctx.lineWidth = 1.4
-        ctx.beginPath()
-        ctx.moveTo(mx + mw - 24, my + 14)
-        ctx.lineTo(mx + mw - 16, my + 22)
-        ctx.moveTo(mx + mw - 16, my + 14)
-        ctx.lineTo(mx + mw - 24, my + 22)
-        ctx.stroke()
-        ctx.lineWidth = 1
-        ctx.fillStyle = col(WHITE, 0.95)
-        label(ctx, 'Select a Logbook entry', mx + 18, my + 62, 13, 600)
+        pts.forEach(([x, y, z], i) => {
+          const [X, Y] = project(x, y, z)
+          i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)
+        })
+      }
+      /** Fades out towards the ends of the window, along the flight. */
+      const along = (x: number) => Math.pow(1 - clamp01((Math.abs(x - scroll) - 0.3 * WINDOW) / (0.7 * WINDOW)), 1.6)
+      ctx.lineWidth = 1
 
-        // The recommended entry's link eases on (button, glyph and tag crossfade together).
-        const toggled = ramp(p, TOGGLE - 0.01, TOGGLE + 0.04)
-        const madeNew = at(p, CREATE, CREATE + 0.06)
-        let y = my + 78
-        const strip = (text: string) => {
-          ctx.fillStyle = col(pal.hi, 0.1)
-          ctx.fillRect(mx + 1, y, mw - 2, 22)
-          ctx.fillStyle = col(WHITE, 0.6)
-          label(ctx, text, mx + 18, y + 15, 9, 600)
-          y += 22
-        }
-        const row = (e: Entry, linked: number, highlight: number, grow = 1) => {
-          const h = rowH * grow
-          if (h < 2) return null
-          ctx.save()
-          ctx.beginPath()
-          ctx.rect(mx, y, mw, h)
-          ctx.clip()
-          if (highlight > 0) {
-            ctx.fillStyle = col(pal.mid, 0.2 * highlight)
-            ctx.fillRect(mx + 1, y, mw - 2, h)
-          }
-          // Link / unlink button on the left.
-          const cx = mx + 30, cy = y + rowH / 2
-          ctx.beginPath()
-          ctx.arc(cx, cy, 10, 0, TAU)
-          ctx.fillStyle = col(mix(WHITE, pal.mid, linked), 0.16 + 0.19 * linked)
-          ctx.fill()
-          ctx.lineWidth = 1.6
-          if (linked < 1) {
-            // Link glyph: a plus, turning as it hands over to the unlink glyph.
-            ctx.save()
-            ctx.translate(cx, cy)
-            ctx.rotate(linked * Math.PI * 0.25)
-            ctx.strokeStyle = col(WHITE, 0.9 * (1 - linked))
+      // The land, drawing on from the valleys up; higher contours read brighter.
+      const c0 = Math.max(0, Math.floor((scroll - WINDOW) / CHUNK)), c1 = Math.min(CHUNKS - 1, Math.floor((scroll + WINDOW) / CHUNK))
+      for (let li = 0; li < LEVELS; li++) {
+        const on = clamp01(reveal * (LEVELS + 3) - li)
+        if (on <= 0) continue
+        const L = (li + 0.5) * LEVEL_STEP
+        for (let band = 0; band < BANDS; band++) {
+          const across = Math.pow(1 - band / BANDS, 1.6)
+          for (let ci = c0; ci <= c1; ci++) {
+            const segs = bins[li][band][ci]
+            if (!segs.length) continue
+            const a = (0.22 + 0.45 * (li / LEVELS)) * across * along((ci + 0.5) * CHUNK) * on
+            if (a <= 0.005) continue
             ctx.beginPath()
-            ctx.moveTo(-5, 0)
-            ctx.lineTo(5, 0)
-            ctx.moveTo(0, -5)
-            ctx.lineTo(0, 5)
-            ctx.stroke()
-            ctx.restore()
-          }
-          if (linked > 0) {
-            // Unlink glyph: two broken chain halves.
-            ctx.strokeStyle = col(pal.hi, 0.9 * linked)
-            ctx.beginPath()
-            ctx.arc(cx - 3, cy + 3, 3, Math.PI * 0.5, Math.PI * 1.5)
-            ctx.moveTo(cx + 3, cy - 6)
-            ctx.arc(cx + 3, cy - 3, 3, -Math.PI * 0.5, Math.PI * 0.5)
+            for (let k = 0; k < segs.length; k += 4) {
+              const [x0, y0] = project(segs[k], L, segs[k + 1]), [x1, y1] = project(segs[k + 2], L, segs[k + 3])
+              ctx.moveTo(x0, y0)
+              ctx.lineTo(x1, y1)
+            }
+            ctx.strokeStyle = col(mix(pal.hi, WHITE, (li / LEVELS) * 0.35), a)
             ctx.stroke()
           }
-          ctx.lineWidth = 1
-          // What: route, tail, and the Linked / Just created tag.
-          const tx = mx + 50
-          ctx.fillStyle = col(WHITE, 0.95)
-          label(ctx, e.route, tx, cy - 3, 11, 600)
-          ctx.fillStyle = col(WHITE, 0.5)
-          label(ctx, e.tail, tx, cy + 12, 9)
-          if (linked > 0) {
-            const tag = e === created ? 'Just created' : 'Linked'
-            ctx.font = '600 8px "Open Sauce One", system-ui, sans-serif'
-            const tw = ctx.measureText(tag).width + 12
-            const gx = tx + ctx.measureText(e.tail).width + 42
-            ctx.strokeStyle = col(pal.hi, 0.9 * linked)
-            rrect(ctx, gx, cy + 3, tw, 13, 6.5)
-            ctx.stroke()
-            ctx.fillStyle = col(pal.hi, linked)
-            label(ctx, tag, gx + 6, cy + 12.5, 8, 600)
-          }
-          // When: date over total, right-aligned.
-          ctx.textAlign = 'right'
-          ctx.fillStyle = col(WHITE, 0.55)
-          label(ctx, e.date, mx + mw - 20, cy - 3, 9)
-          ctx.fillStyle = col(WHITE, 0.85)
-          label(ctx, e.total, mx + mw - 20, cy + 12, 9)
-          ctx.textAlign = 'left'
-          ctx.restore()
-          ctx.strokeStyle = col(pal.hi, 0.14)
-          ctx.beginPath()
-          ctx.moveTo(mx + 12, y + h)
-          ctx.lineTo(mx + mw - 12, y + h)
-          ctx.stroke()
-          const at0: Pt = [cx, cy]
-          y += h
-          return at0
         }
-        // The list scrolls under the footer, like the real picker: clip it above the button.
-        ctx.save()
-        ctx.beginPath()
-        ctx.rect(mx, my + 78, mw, mh - 78 - 60)
-        ctx.clip()
-        strip('Recent Entries')
-        if (madeNew > 0) row(created, 1, 0, easeOutCubic(madeNew))
-        recent.forEach((e) => row(e, e.linked ? 1 : 0, 0))
-        strip('Recommended Entries')
-        recommended.forEach((e, k) => {
-          const at0 = row(e, k === 0 ? toggled : 0, k === 0 ? ramp(p, TOGGLE - 0.06, TOGGLE) * (1 - ramp(p, CREATE - 0.04, CREATE + 0.02)) : 0)
-          if (k === 0 && at0) {
-            toggleAt = at0
-            linkedRow = [mx + 12, at0[1]]
-          }
-        })
-        ctx.restore()
-        // Scrollbar.
-        const sy0 = my + 78, sh = mh - 78 - 64
-        ctx.fillStyle = col(WHITE, 0.08)
-        ctx.fillRect(mx + mw - 6, sy0, 2, sh)
-        ctx.fillStyle = col(WHITE, 0.4)
-        ctx.fillRect(mx + mw - 6, sy0 + madeNew * 8, 2, sh * 0.62)
-        // Create New Entry.
-        const by = my + mh - 50
-        createAt = [mx + mw / 2 + 50, by + 16]
-        const press = pulse(p, CREATE)
-        ctx.strokeStyle = col(pal.hi, 0.9)
-        rrect(ctx, mx + 18, by, mw - 36, 32, 6)
+      }
+
+      // The route on the ground, dotted, as it would be on a chart.
+      const ground: V3[] = []
+      for (let x = scroll - WINDOW; x <= scroll + WINDOW; x += 0.08) ground.push([x, height(x, routeZ(x)) + 0.01, routeZ(x)])
+      ctx.setLineDash([1, 4])
+      path(ground)
+      ctx.strokeStyle = col(pal.hi, 0.35 * reveal)
+      ctx.stroke()
+      ctx.setLineDash([])
+
+      // Airports sliding by: a runway along the route, a ring, and the code on a post.
+      ctx.textAlign = 'center'
+      for (const { code, x } of AIRPORTS) {
+        const a = along(x) * clamp01(reveal * 2 - 0.6)
+        if (a <= 0.01) continue
+        const z = routeZ(x), y = height(x, z) + 0.005
+        const dl = Math.hypot(1, routeSlope(x))
+        const fx = 1 / dl, fz = routeSlope(x) / dl
+        const corner = (s: number, w: number): V3 => [x + fx * 0.18 * s - fz * 0.025 * w, y, z + fz * 0.18 * s + fx * 0.025 * w]
+        path([corner(-1, 1), corner(1, 1), corner(1, -1), corner(-1, -1), corner(-1, 1)])
+        ctx.strokeStyle = col(WHITE, 0.8 * a)
         ctx.stroke()
-        if (press > 0) {
-          ctx.fillStyle = col(pal.hi, 0.15 * press)
-          ctx.fill()
-        }
-        ctx.fillStyle = col(pal.hi, 1)
-        ctx.textAlign = 'center'
-        label(ctx, 'Create New Entry', mx + mw / 2, by + 20, 10, 600)
-        ctx.textAlign = 'left'
-        ctx.globalAlpha = sceneAlpha
+        path(Array.from({ length: 33 }, (_, n) => [x + Math.cos((n / 32) * TAU) * 0.3, y, z + Math.sin((n / 32) * TAU) * 0.3] as V3))
+        ctx.strokeStyle = col(pal.hi, 0.35 * a)
+        ctx.stroke()
+        path([[x, y, z], [x, y + 0.34, z]])
+        ctx.strokeStyle = col(WHITE, 0.3 * a)
+        ctx.stroke()
+        const [lx, ly] = project(x, y + 0.42, z)
+        ctx.fillStyle = col(WHITE, 0.9 * a)
+        label(ctx, code, lx, ly, 10, 600)
       }
+      ctx.textAlign = 'left'
 
-      // ---- The link: telemetry travelling from the track log into the entry ----
-      if (!narrow && linkedRow && p > FLOW) {
-        const f = at(p, FLOW, FLOW + 0.14) * reveal
-        const from: Pt = [wx + ww, rowY(ROW) + tRowH / 2]
-        const to: Pt = linkedRow
-        const path = spline([from, [from[0] + (to[0] - from[0]) * 0.5, from[1]], [from[0] + (to[0] - from[0]) * 0.5, to[1]], to], 20)
-        ctx.setLineDash([3, 4])
-        ctx.strokeStyle = col(pal.hi, 0.8)
-        if (f > 0) strokeTo(ctx, path, f)
-        ctx.setLineDash([])
-        // Data flows along it once it's connected, fading up rather than switching on.
-        const flow = ramp(p, FLOW + 0.12, FLOW + 0.17) * reveal
-        for (let k = 0; flow > 0 && k < 4; k++) {
-          const u = (t * 0.6 + k / 4) % 1
-          const pt = path[Math.floor(u * (path.length - 1))]
-          ctx.fillStyle = col(WHITE, 0.9 * flow)
-          ctx.fillRect(pt[0] - 1.5, pt[1] - 1.5, 3, 3)
-        }
+      // The plane, steady at cruise with a slight float, over the route.
+      const bob = Math.sin(t * 1.6) * 0.03
+      const planeAt: V3 = [scroll, CRUISE + bob, routeZ(scroll)]
+      const on = clamp01(reveal * 1.6 - 0.5)
+
+      // Its track: flown behind it, solid and fading; the route ahead, dashed.
+      const behind: V3[] = [], ahead: V3[] = []
+      for (let x = scroll - WINDOW * 0.8; x <= scroll + 0.001; x += 0.06) behind.push([x, CRUISE + Math.sin((t - (scroll - x) / SPEED) * 1.6) * 0.03, routeZ(x)])
+      for (let x = scroll; x <= scroll + WINDOW * 0.8; x += 0.06) ahead.push([x, CRUISE, routeZ(x)])
+      for (let k = 1; k < behind.length; k++) {
+        path([behind[k - 1], behind[k]])
+        ctx.strokeStyle = col(WHITE, 0.8 * on * (k / behind.length))
+        ctx.stroke()
       }
+      ctx.setLineDash([3, 4])
+      path(ahead)
+      ctx.strokeStyle = col(pal.hi, 0.45 * on)
+      ctx.stroke()
+      ctx.setLineDash([])
 
-      // ---- Cursor: kebab -> "Link to Logbook" -> recommended entry's toggle ----
-      // Fades in at the start and out after the last click, instead of popping.
-      const cursorIn = ramp(p, 0.03, 0.08) * (1 - ramp(p, CREATE + 0.04, CREATE + 0.1))
-      if (!narrow && cursorIn > 0) {
-        const kebab: Pt = [wx + ww - 21, rowY(ROW) + tRowH / 2]
-        const item: Pt = [wx + ww - 110, rowY(ROW) + tRowH + 10]
-        const start: Pt = [wx + ww * 0.6, wy + wh * 0.8]
-        let c: Pt
-        if (p < MENU) c = lerpPt(start, kebab, easeInOutCubic(at(p, 0.06, MENU)))
-        else if (p < CLICK) c = lerpPt(kebab, item, easeInOutCubic(at(p, MENU + 0.04, CLICK - 0.02)))
-        else if (p < TOGGLE + 0.02) c = lerpPt(item, toggleAt, easeInOutCubic(at(p, CLICK + 0.08, TOGGLE - 0.02)))
-        else c = lerpPt(toggleAt, createAt, easeInOutCubic(at(p, FLOW + 0.04, CREATE - 0.02)))
-        const press = Math.max(pulse(p, MENU), pulse(p, CLICK), pulse(p, TOGGLE), pulse(p, CREATE))
-        cursor(ctx, c[0], c[1], col, press, cursorIn)
+      // Height above the ground: a dotted drop to the land and a mark where it meets it.
+      const floor = height(planeAt[0], planeAt[2])
+      ctx.setLineDash([1, 3])
+      path([planeAt, [planeAt[0], floor, planeAt[2]]])
+      ctx.strokeStyle = col(WHITE, 0.4 * on)
+      ctx.stroke()
+      ctx.setLineDash([])
+      path(Array.from({ length: 13 }, (_, n) => [planeAt[0] + Math.cos((n / 12) * TAU) * 0.05, floor, planeAt[2] + Math.sin((n / 12) * TAU) * 0.05] as V3))
+      ctx.stroke()
+
+      // Pointed along the route, banked into its turns (by how fast the heading is changing).
+      const slope = routeSlope(scroll)
+      const fl = Math.hypot(1, slope)
+      const fw: V3 = [1 / fl, 0, slope / fl]
+      const rt: V3 = [-fw[2], 0, fw[0]]
+      const turn = (routeSlope(scroll + 0.3) - routeSlope(scroll - 0.3)) / 0.6
+      const bank = Math.max(-0.5, Math.min(0.5, turn * 0.9))
+      const cb = Math.cos(bank), sb = Math.sin(bank)
+      const up: V3 = [-rt[0] * sb, cb, -rt[2] * sb]
+      const rtB: V3 = [rt[0] * cb, sb, rt[2] * cb]
+      for (const part of PLANE) {
+        path(part.map(([a, b, c]) => [0, 1, 2].map((j) => planeAt[j] + fw[j] * a + up[j] * b + rtB[j] * c) as V3))
+        ctx.strokeStyle = col(WHITE, 0.95 * on)
+        ctx.stroke()
       }
     },
   }
 })()
 
-const lerpPt = (a: Pt, b: Pt, u: number): Pt => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]
-/** 0..1..0 blip around a moment in the scene (a click). */
 const pulse = (p: number, at: number) => Math.max(0, 1 - Math.abs(p - at) / 0.02)
 
 const whoOwnsSeattle: Scene = (() => {
-  // A 5 x 4 block of office towers: a handful of shapes, with floor lines for detail.
-  const cols = 5, rows = 4
+  // South Lake Union from 1990 to 2025, in isometric: Lake Union to the north, Westlake cutting
+  // across the west edge, the street grid down to Denny Way. As the years run, the low-rise
+  // warehouses come down and towers go up (cranes and all), but each parcel's owner, developer,
+  // trust or public, stays the same: the colour of a lot never changes, only what stands on it.
+  //
+  // Map units: one block. x runs east (0..COLS), z runs south from Valley St (0) to Denny (ROWS).
+  const COLS = 6, ROWS = 6, ST = 0.09 // half a street's width
+  /** Westlake Ave N, running up from Denny towards the lake, west of 9th. */
+  const westlake = (z: number) => -0.4 + (z / ROWS) * 1.3
+  /** The shore, just north of Valley St. */
+  const shore = (x: number) => -0.18 - 0.12 * Math.sin(x * 1.1 + 0.6) - 0.06 * Math.sin(x * 2.7)
+  const DEVELOPER = 0, TRUST = 1, PUBLIC = 2
+  const yearAt = (p: number) => 1990 + clamp01(p * 1.1) * 35
+
+  type Parcel = { poly: Pt[]; owner: number; oldH: number; rebuild: number; newH: number; podium: boolean; park: boolean; n: number }
   const rnd = seeded(21)
-  const base = Array.from({ length: cols * rows }, (_, n) => {
-    const i = n % cols, j = Math.floor(n / cols)
-    // Taller toward the middle of the block, like a downtown core.
-    const core = 1 - Math.hypot(i - (cols - 1) / 2, j - (rows - 1) / 2) / 3.2
-    return 0.25 + 0.75 * clamp01(core * 0.8 + rnd() * 0.45)
-  })
-  // Highest roof above the grid's origin, in lots (for centring the block vertically).
-  const TOP = Math.min(-0.5, ...base.map((b, n) => ((n % cols) + Math.floor(n / cols)) * 0.5 - b * 3.4 - 0.31))
-  const yearAt = (p: number) => 1990 + Math.floor(clamp01(p * 1.15) * 35)
+  const parcels: Parcel[] = []
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const z0 = r + ST, z1 = r + 1 - ST
+      // Blocks against Westlake are cut along it.
+      const west = (z: number) => (c === 0 ? Math.max(c + ST, westlake(z) + ST) : c + ST)
+      const x1 = c + 1 - ST
+      const split = rnd() < 0.6
+      const halves = split ? [[0, 0.5 - 0.02], [0.5 + 0.02, 1]] : [[0, 1]]
+      for (const [a, b] of halves) {
+        const at = (u: number, z: number) => west(z) + (x1 - west(z)) * u
+        const poly: Pt[] = [[at(a, z0), z0], [at(b, z0), z0], [at(b, z1), z1], [at(a, z1), z1]]
+        // Lake Union Park along the shore; otherwise mostly developers, some trusts, a few public.
+        const park = r === 0 && c >= 1 && c <= 2
+        const roll = rnd()
+        const owner = park ? PUBLIC : roll < 0.6 ? DEVELOPER : roll < 0.82 ? TRUST : PUBLIC
+        const k = rnd(), q = rnd()
+        // Only about half the developers' lots get a tower; the rest, and the trusts', go mid-rise.
+        const tower = owner === DEVELOPER && rnd() < 0.5
+        parcels.push({
+          poly,
+          owner,
+          park,
+          oldH: 0.1 + k * 0.25,
+          // Developers rebuild in the boom (mostly 2006-2021), trusts earlier and slower, public
+          // lots rarely.
+          rebuild: park ? Infinity : owner === DEVELOPER ? 2006 + q * 15 : owner === TRUST ? 1996 + q * 20 : q < 0.5 ? 1998 + q * 24 : Infinity,
+          newH: tower ? 1.5 + k * 1.6 : owner === PUBLIC ? 0.3 + k * 0.4 : 0.45 + k * 0.6,
+          podium: tower && k > 0.25,
+          n: parcels.length,
+        })
+      }
+    }
+  }
+  /** Years the old building takes to come down, and the new one to go up. */
+  const DEMO = 0.8, BUILD = 2.6, FLOOR = 0.12
+
+  const shrink = (poly: Pt[], f: number): Pt[] => {
+    const mx = poly.reduce((s, q) => s + q[0], 0) / poly.length, mz = poly.reduce((s, q) => s + q[1], 0) / poly.length
+    return poly.map(([x, z]) => [mx + (x - mx) * f, mz + (z - mz) * f])
+  }
+
   return {
-    title: 'Who Owns Seattle',
-    meta: 'Data Visualization · 2025',
-    tags: 'KING COUNTY RECORDS / PARCELS / OWNERSHIP',
-    readouts: ({ p }) => [
-      ['YEAR', String(yearAt(p))],
-      ['PARCELS', '1,284'],
-      ['TOP OWNER', `${Math.round(18 + p * 21)}%`],
-    ],
-    draw: ({ ctx, box, p, reveal, col, pal }) => {
-      const span = cols + rows
-      // The block and its legend are centred together; the year scrubber runs under the block.
-      // The street grid is span lots wide; narrow frames drop the legend.
-      const s = Math.min(box.h / 8.6, box.w / 9.6)
-      const legendW = 120, legendGap = 56
-      const legend = box.w >= span * s + legendW + legendGap + 40
-      const lead = legend ? legendW + legendGap : 0
-      const gx = box.x + (box.w - span * s - lead) / 2 + lead // the street grid's left corner
-      const ox = gx + rows * s
-      const oy = box.y + box.h / 2 - ((TOP + 4) * s + 44) / 2
-      const k = s * 0.62 // footprint half-width; the rest of the lot is street
-      const year = yearAt(p)
-      // Continuous years, so each tower's owner can crossfade instead of snapping.
-      const years = clamp01(p * 1.15) * 35
-      const owners = [pal.hi, pal.mid, WHITE]
+    description:
+      'A data visualizer that maps who owns Seattle, parcel by parcel, from King County property records.',
+    draw: ({ ctx, box, p, t, reveal, col, pal }) => {
+      // Three steps from the highlight down towards the ground: developer, trust, public.
+      const owners = [pal.hi, mix(pal.hi, pal.lo, 0.38), mix(pal.hi, pal.lo, 0.62)]
+      const years = yearAt(p)
+      const cx = box.x + box.w / 2, cy = box.y + box.h / 2 - 6
+      const ppu = Math.min(box.h / 8.4, box.w / 11.5)
+      const yaw = ((30 + 4 * Math.sin(t * 0.3)) * Math.PI) / 180, pitch = (32 * Math.PI) / 180
+      const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch)
+      // Orthographic, centred on the middle of the neighbourhood (a little north, for the lake).
+      const CX = COLS / 2, CZ = ROWS / 2 - 0.9, CY = 0.8
+      const project = (x: number, y: number, z: number): Pt => {
+        const X = x - CX, Z = z - CZ
+        const x1 = X * cyw + Z * syw, z1 = Z * cyw - X * syw
+        return [cx + x1 * ppu, cy - ((y - CY) * cp - z1 * sp) * ppu]
+      }
+      const depth = (x: number, z: number) => (z - CZ) * cyw - (x - CX) * syw
+      const line = (pts: V3[]) => {
+        pts.forEach(([x, y, z], i) => {
+          const [X, Y] = project(x, y, z)
+          i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)
+        })
+      }
       ctx.lineWidth = 1
-      // Street grid.
-      ctx.strokeStyle = col(pal.hi, 0.14)
+
+      // ---- The lake: its shore and rows of ripples, fading out to the north ----
       ctx.beginPath()
-      for (let i = -0.5; i <= cols - 0.5; i++) {
-        ctx.moveTo(ox + (i + 0.5) * s, oy + (i - 0.5) * s * 0.5)
-        ctx.lineTo(ox + (i + 0.5 - rows) * s, oy + (i - 0.5 + rows) * s * 0.5)
-      }
-      for (let j = -0.5; j <= rows - 0.5; j++) {
-        ctx.moveTo(ox - (j + 0.5) * s, oy + (j - 0.5) * s * 0.5)
-        ctx.lineTo(ox + (cols - j - 0.5) * s, oy + (cols + j - 0.5) * s * 0.5)
-      }
+      const shoreLine: V3[] = []
+      for (let x = -0.9; x <= COLS + 0.4; x += 0.1) shoreLine.push([x, 0, shore(x)])
+      line(shoreLine)
+      ctx.strokeStyle = col(pal.hi, 0.5 * reveal)
       ctx.stroke()
-      // Towers, back to front.
-      for (let d = 0; d < span - 1; d++) {
-        for (let i = 0; i < cols; i++) {
-          const j = d - i
-          if (j < 0 || j >= rows) continue
-          const b = base[j * cols + i]
-          const rise = easeOutExpo(clamp01(reveal * 1.8 - d * 0.09))
-          const H = b * s * 3.4 * rise
-          // Parcels change hands every 8 years (staggered across the block), blending over the last fifth.
-          const era = (years + i * 3 + j * 2) / 8
-          const o = Math.floor(b * 7) + Math.floor(era)
-          const owner = mix(owners[o % 3], owners[(o + 1) % 3], ramp(era % 1, 0.8, 1))
-          const X = ox + (i - j) * s, Y = oy + (i + j) * s * 0.5
-          const W: Pt = [X - k, Y], S: Pt = [X, Y + k * 0.5], E: Pt = [X + k, Y], N: Pt = [X, Y - k * 0.5]
-          // Left and right faces.
-          ctx.beginPath()
-          ctx.moveTo(W[0], W[1] - H)
-          ctx.lineTo(W[0], W[1])
-          ctx.lineTo(S[0], S[1])
-          ctx.lineTo(S[0], S[1] - H)
-          ctx.closePath()
-          ctx.fillStyle = col(owner, 0.16)
-          ctx.fill()
-          ctx.beginPath()
-          ctx.moveTo(S[0], S[1] - H)
-          ctx.lineTo(S[0], S[1])
-          ctx.lineTo(E[0], E[1])
-          ctx.lineTo(E[0], E[1] - H)
-          ctx.closePath()
-          ctx.fillStyle = col(owner, 0.08)
-          ctx.fill()
-          // Floors, one line every 7px up both faces.
-          ctx.beginPath()
-          for (let f = 7; f < H - 2; f += 7) {
-            ctx.moveTo(W[0], W[1] - f)
-            ctx.lineTo(S[0], S[1] - f)
-            ctx.lineTo(E[0], E[1] - f)
+      for (let k = 1; k <= 9; k++) {
+        const a = (0.3 - k * 0.03) * reveal
+        if (a <= 0) continue
+        ctx.beginPath()
+        for (let x = -0.9; x <= COLS + 0.4; x += 0.1) {
+          const z = shore(x) - k * 0.22
+          // Broken into dashes that drift, like light on water.
+          if (Math.sin(x * 4 + k * 1.7 + t * 0.8) > -0.2) {
+            const [X, Y] = project(x, 0, z)
+            const [X2, Y2] = project(x + 0.1, 0, shore(x + 0.1) - k * 0.22)
+            ctx.moveTo(X, Y)
+            ctx.lineTo(X2, Y2)
           }
-          ctx.strokeStyle = col(owner, 0.3)
-          ctx.stroke()
-          // Roof + edges.
+        }
+        ctx.strokeStyle = col(pal.hi, a)
+        ctx.stroke()
+      }
+
+      // ---- Streets: centrelines, faint, and Westlake on its diagonal ----
+      ctx.beginPath()
+      for (let c = 1; c <= COLS; c++) line([[c, 0, 0], [c, 0, ROWS]])
+      for (let r = 0; r <= ROWS; r++) line([[westlake(r), 0, r], [COLS, 0, r]])
+      line([[westlake(0), 0, 0], [westlake(ROWS), 0, ROWS]])
+      ctx.strokeStyle = col(pal.hi, 0.16 * reveal)
+      ctx.stroke()
+
+      // ---- Buildings, back to front ----
+      type Prism = { poly: Pt[]; y0: number; y1: number; owner: number; mode: 'solid' | 'frame'; d: number }
+      const prisms: Prism[] = []
+      const cranes: { x: number; z: number; h: number; n: number }[] = []
+      const rise = easeOutCubic(clamp01(reveal * 1.4 - 0.2))
+      for (const q of parcels) {
+        const d = depth(...(q.poly.reduce((s, v) => [s[0] + v[0] / 4, s[1] + v[1] / 4], [0, 0]) as Pt))
+        if (q.park) continue
+        const since = years - q.rebuild
+        if (since < DEMO) {
+          // The old low-rise, coming down once its lot is sold on for a tower.
+          const h = q.oldH * (since < 0 ? 1 : 1 - easeInOutCubic(since / DEMO)) * rise
+          if (h > 0.005) prisms.push({ poly: shrink(q.poly, 0.9), y0: 0, y1: h, owner: q.owner, mode: 'solid', d })
+          continue
+        }
+        const u = clamp01((since - DEMO) / BUILD)
+        const done = u >= 1
+        const H = q.newH * easeInOutCubic(u) * rise
+        // Developers' towers stand on a podium that fills the lot.
+        const podH = q.podium ? Math.min(H, 0.36) : 0
+        if (podH > 0) prisms.push({ poly: shrink(q.poly, 0.92), y0: 0, y1: podH, owner: q.owner, mode: done ? 'solid' : 'frame', d })
+        if (H > podH + 0.005) prisms.push({ poly: shrink(q.poly, q.podium ? 0.6 : 0.85), y0: podH, y1: H, owner: q.owner, mode: done ? 'solid' : 'frame', d: d + 0.001 })
+        if (!done) {
+          const [px, pz] = q.poly[1]
+          cranes.push({ x: px + 0.05, z: pz - 0.05, h: q.newH * rise + 0.45, n: q.n })
+        }
+      }
+      prisms.sort((a, b) => a.d - b.d || a.y0 - b.y0)
+
+      // Ground: every lot outlined in its owner's colour, the park with its trees.
+      for (const q of parcels) {
+        ctx.beginPath()
+        line([...q.poly, q.poly[0]].map(([x, z]) => [x, 0, z] as V3))
+        ctx.strokeStyle = col(owners[q.owner], (q.park ? 0.7 : 0.45) * reveal)
+        ctx.stroke()
+        if (q.park) {
+          const tr = seeded(q.n + 3)
+          const [[ax, az], , [bx, bz]] = q.poly
+          for (let k = 0; k < 7; k++) {
+            const x = ax + (bx - ax) * (0.15 + tr() * 0.7), z = az + (bz - az) * (0.15 + tr() * 0.7)
+            ctx.beginPath()
+            line(Array.from({ length: 9 }, (_, n) => [x + Math.cos((n / 8) * TAU) * 0.06, 0.08 * rise, z + Math.sin((n / 8) * TAU) * 0.06] as V3))
+            line([[x, 0, z], [x, 0.08 * rise, z]])
+            ctx.strokeStyle = col(WHITE, 0.45 * reveal)
+            ctx.stroke()
+          }
+        }
+      }
+
+      // Horizontal direction towards the camera, for picking the faces that show.
+      const vx = -syw, vz = cyw
+      for (const b of prisms) {
+        const { poly, y0, y1 } = b
+        const owner = owners[b.owner]
+        const n = poly.length
+        let area = 0
+        for (let i = 0; i < n; i++) area += poly[i][0] * poly[(i + 1) % n][1] - poly[(i + 1) % n][0] * poly[i][1]
+        const sgn = area > 0 ? 1 : -1
+        const faces: [Pt, Pt][] = []
+        for (let i = 0; i < n; i++) {
+          const a = poly[i], c = poly[(i + 1) % n]
+          const nx = (c[1] - a[1]) * sgn, nz = -(c[0] - a[0]) * sgn
+          if (nx * vx + nz * vz > 0) faces.push([a, c])
+        }
+        const top = poly.map(([x, z]) => [x, y1, z] as V3)
+        if (b.mode === 'solid') {
+          // Dark faces, so what's behind is hidden, then the edges and floors in the owner's colour.
+          for (const [a, c] of faces) {
+            ctx.beginPath()
+            line([[a[0], y0, a[1]], [c[0], y0, c[1]], [c[0], y1, c[1]], [a[0], y1, a[1]]])
+            ctx.closePath()
+            ctx.fillStyle = col(pal.lo, 0.94)
+            ctx.fill()
+            ctx.fillStyle = col(owner, 0.07)
+            ctx.fill()
+          }
           ctx.beginPath()
-          ctx.moveTo(N[0], N[1] - H)
-          ctx.lineTo(E[0], E[1] - H)
-          ctx.lineTo(S[0], S[1] - H)
-          ctx.lineTo(W[0], W[1] - H)
+          line(top)
           ctx.closePath()
-          ctx.fillStyle = col(owner, 0.35)
+          ctx.fillStyle = col(pal.lo, 0.94)
           ctx.fill()
-          ctx.moveTo(W[0], W[1] - H)
-          ctx.lineTo(W[0], W[1])
-          ctx.lineTo(S[0], S[1])
-          ctx.lineTo(E[0], E[1])
-          ctx.lineTo(E[0], E[1] - H)
-          ctx.moveTo(S[0], S[1])
-          ctx.lineTo(S[0], S[1] - H)
-          ctx.strokeStyle = col(owner, 0.9)
+          ctx.fillStyle = col(owner, 0.22)
+          ctx.fill()
+          ctx.beginPath()
+          for (let f = y0 + FLOOR; f < y1 - 0.03; f += FLOOR) for (const [a, c] of faces) line([[a[0], f, a[1]], [c[0], f, c[1]]])
+          ctx.strokeStyle = col(owner, 0.28 * reveal)
+          ctx.stroke()
+          ctx.beginPath()
+          line([...top, top[0]])
+          for (const [a, c] of faces) {
+            line([[a[0], y0, a[1]], [c[0], y0, c[1]]])
+            line([[a[0], y0, a[1]], [a[0], y1, a[1]]])
+            line([[c[0], y0, c[1]], [c[0], y1, c[1]]])
+          }
+          ctx.strokeStyle = col(owner, 0.9 * reveal)
+          ctx.stroke()
+        } else {
+          // Going up: bare columns and a slab at every floor, see-through.
+          ctx.beginPath()
+          for (const [x, z] of poly) line([[x, y0, z], [x, y1, z]])
+          for (let f = y0; f <= y1 + 1e-6; f += FLOOR) line([...poly, poly[0]].map(([x, z]) => [x, Math.min(f, y1), z] as V3))
+          line([...top, top[0]])
+          ctx.strokeStyle = col(owner, 0.55 * reveal)
           ctx.stroke()
         }
       }
-      // Legend, level with the block's left corner.
-      if (legend) {
-        const lx = gx - legendGap - legendW, ly = oy + (rows - 1) * s * 0.5 - 18
-        ctx.fillStyle = col(WHITE, 0.6)
-        label(ctx, 'OWNERSHIP BY PARCEL', lx, ly - 18, 9)
-        ;['DEVELOPER', 'TRUST', 'PUBLIC'].forEach((name, n) => {
-          ctx.fillStyle = col(owners[n], 0.9)
-          ctx.fillRect(lx, ly + n * 22, 10, 10)
-          ctx.fillStyle = col(WHITE, 0.75)
-          label(ctx, name, lx + 18, ly + n * 22 + 9, 9)
-        })
+
+      // Tower cranes over the sites going up, slewing slowly.
+      for (const k of cranes) {
+        const ang = t * 0.35 + k.n * 1.3
+        const jx = Math.cos(ang), jz = Math.sin(ang)
+        ctx.beginPath()
+        line([[k.x, 0, k.z], [k.x, k.h, k.z]])
+        line([[k.x - jx * 0.3, k.h, k.z - jz * 0.3], [k.x + jx * 0.95, k.h, k.z + jz * 0.95]])
+        line([[k.x, k.h + 0.12, k.z], [k.x + jx * 0.95, k.h, k.z + jz * 0.95]])
+        line([[k.x, k.h + 0.12, k.z], [k.x - jx * 0.3, k.h, k.z - jz * 0.3]])
+        const hook = 0.55 + 0.35 * Math.sin(t * 0.9 + k.n)
+        line([[k.x + jx * hook, k.h, k.z + jz * hook], [k.x + jx * hook, k.h * 0.45, k.z + jz * hook]])
+        ctx.strokeStyle = col(WHITE, 0.7 * reveal)
+        ctx.stroke()
       }
-      // Year scrubber, centred under the block.
-      const sw = s * 5, sx = ox + s * 0.5 - sw / 2, sy = oy + 4 * s + 40
-      ctx.strokeStyle = col(pal.hi, 0.35)
+
+      // ---- Names on the map ----
+      ctx.fillStyle = col(WHITE, 0.5 * reveal)
+      ctx.textAlign = 'center'
+      const name = (text: string, x: number, z: number, y = 0) => {
+        const [X, Y] = project(x, y, z)
+        label(ctx, text, X, Y, 8)
+      }
+      name('LAKE UNION', 2.6, -1.3)
+      ctx.textAlign = 'left'
+      name('MERCER ST', COLS + 0.25, 1)
+      name('DENNY WAY', COLS + 0.25, ROWS)
+      ctx.textAlign = 'right'
+      name('WESTLAKE AVE N', westlake(4.5) - 0.2, 4.5)
+      ctx.textAlign = 'left'
+
+      // ---- Year scrubber, over the map ----
+      const sw = Math.min(box.w * 0.4, 280), sx = cx - sw / 2, sy = box.y + 18
+      ctx.strokeStyle = col(pal.hi, 0.35 * reveal)
       ctx.beginPath()
       ctx.moveTo(sx, sy)
       ctx.lineTo(sx + sw * reveal, sy)
@@ -816,409 +775,329 @@ const whoOwnsSeattle: Scene = (() => {
         ctx.lineTo(sx + (sw * n) / 7, sy + 3)
       }
       ctx.stroke()
-      const kx = sx + sw * clamp01(p * 1.15)
-      ctx.fillStyle = col(WHITE, 1)
+      const kx = sx + (sw * (years - 1990)) / 35
+      ctx.fillStyle = col(WHITE, reveal)
       ctx.fillRect(kx - 1, sy - 8, 2, 16)
-      label(ctx, String(year), kx - 12, sy - 14, 9)
+      ctx.textAlign = 'center'
+      label(ctx, String(Math.floor(years)), kx, sy - 14, 9)
+      ctx.textAlign = 'left'
     },
   }
 })()
 
-const projectOpen: Scene = (() => {
-  // Traced from the Project Open prototype: a bandless hook over the top and down the back of the
-  // ear, a round open-back cup hung in front of it from a knuckle, a bar running from the cup back
-  // across the ear, and a ball at each end (one off the back of the hook, one under the lobe).
-  // Drawn worn on a right ear, seen from the side with the face to the right. The story:
-  //   draw on -> explode the cup's parts out along its axis, with callouts -> reassemble -> the
-  //   ear draws in under the piece and the cup turns see-through (it's open-back), with ambient
-  //   sound reaching the canal while the cup plays.
-  // Each beat overlaps the next, so the piece never stops moving between them.
-  const EXPLODE = [0.08, 0.3] as const
-  const COLLAPSE = [0.48, 0.62] as const
-  const EAR = [0.56, 0.76] as const
-  const SOUND = [0.68, 0.82] as const
-  const phaseOf = (p: number) => (p < COLLAPSE[0] ? 'EXPLODED VIEW' : p < EAR[0] + 0.04 ? 'ASSEMBLING' : 'OPEN EAR')
+/**
+ * Project Open's 3D model, as contour lines: the prototype's STL sliced into outlines along its
+ * depth (see scripts/slice-model.mjs). Loaded once by createReel; the scene draws nothing of it
+ * until it's in, which is long before its turn comes round.
+ */
+type ModelLine = { slice: number; pts: Float32Array }
+type Model = { lines: ModelLine[]; slices: number }
+let model: Model | null = null
+let modelLoad: Promise<void> | null = null
 
-  // Geometry in ear units: origin mid-ear, u toward the face, v down; 1 = half the ear's height.
-  const ear = {
-    // Helix and lobe: from where the rim leaves the cheek, over the top, down the back, round the lobe.
-    outline: spline([
-      [0.2, -0.4], [0.3, -0.62], [0.26, -0.86], [0.08, -1.0], [-0.18, -1.03], [-0.44, -0.9], [-0.62, -0.64], [-0.69, -0.32],
-      [-0.66, -0.02], [-0.57, 0.26], [-0.45, 0.48], [-0.36, 0.68], [-0.22, 0.86], [-0.04, 0.92], [0.09, 0.83], [0.13, 0.62],
-    ], 10),
-    // Where the ear meets the cheek: not drawn, just closes the silhouette through the tragus.
-    front: spline([[0.13, 0.62], [0.1, 0.46], [0.18, 0.3], [0.24, 0.06], [0.24, -0.2], [0.2, -0.4]], 8),
-    // The rim's inner fold, running on from the crus of the helix inside the concha.
-    rim: spline([
-      [0.02, -0.14], [0.13, -0.32], [0.18, -0.58], [0.08, -0.82], [-0.14, -0.92], [-0.4, -0.82], [-0.56, -0.58],
-      [-0.61, -0.3], [-0.57, -0.02], [-0.48, 0.24], [-0.38, 0.44],
-    ], 10),
-    // Antihelix, from the antitragus up into its upper crus, which tucks under the rim.
-    antihelix: spline([[-0.12, 0.4], [-0.3, 0.22], [-0.4, -0.02], [-0.4, -0.3], [-0.28, -0.56], [-0.1, -0.72], [0.04, -0.76]], 10),
-    // Its lower crus, forking forward over the concha (the triangular fossa sits between the two).
-    crus: spline([[-0.39, -0.32], [-0.2, -0.44], [0.06, -0.48]], 10),
-    // The concha: its back wall, curling under into the antitragus and the notch...
-    concha: spline([[-0.1, -0.28], [-0.24, -0.06], [-0.22, 0.18], [-0.1, 0.34], [0.05, 0.4]], 10),
-    // ...and the bowl it walls in, shaded deeper than the rest of the ear.
-    bowl: spline([
-      [0.04, -0.16], [-0.1, -0.28], [-0.24, -0.06], [-0.22, 0.18], [-0.1, 0.34], [0.05, 0.4], [0.12, 0.32], [0.14, 0.14],
-      [0.1, -0.02], [0.04, -0.16],
-    ], 10),
-    tragus: spline([[0.05, 0.42], [0.12, 0.34], [0.14, 0.18], [0.17, 0.04], [0.24, -0.02]], 10),
-  }
-  const CANAL: Pt = [0.03, 0.16]
-  // The piece, as worn. The cup hangs just forward of the canal from the knuckle.
-  const CUP: Pt = [0.56, 0.02], CUP_R = 0.46
-  const KNUCKLE: Pt = [0.44, -0.6]
-  const BALL_BACK: Pt = [-1.02, -0.46], BALL_LOW: Pt = [-0.04, 1.12]
-  // The hook hugs the ear: up from the knuckle, over the top, down the back to meet the bar.
-  const hook = spline([KNUCKLE, [0.38, -0.9], [0.14, -1.1], [-0.18, -1.13], [-0.48, -1.0], [-0.68, -0.72], [-0.76, -0.36], [-0.74, 0.0], [-0.7, 0.3]], 16)
-  // The bar runs from under the cup back across the ear, its end standing proud of the hook.
-  const bar = spline([[-0.98, 0.34], [-0.7, 0.33], [-0.3, 0.36], [0.22, 0.3]], 16)
-  // The lower arm comes out from under the cup and round beneath the lobe to its ball.
-  const lowArm = spline([[0.46, 0.44], [0.38, 0.78], [0.18, 1.02], BALL_LOW], 16)
-  const backStem: Pt[] = [[-0.74, -0.46], BALL_BACK]
-  // Exploded, the parts fan out from the cup's rim GAP apart, and the whole group (SPAN wide, in
-  // ear units) slides left to stay centred.
-  const GAP = 0.5, SPAN = 5.5
+/** Starts loading the model (once); resolves when it's in, so a still frame can be redrawn. */
+function loadModel() {
+  modelLoad ??= fetch(`${import.meta.env.BASE_URL}models/project-open.bin`)
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+    .then((buf) => {
+      // Int16s: line count, then per line its part, slice and point count, then x y z per point
+      // (each -1..1 as -32767..32767). The scene draws the piece whole, so parts aren't kept.
+      const d = new Int16Array(buf)
+      const lines: ModelLine[] = []
+      let o = 1
+      for (let n = 0; n < d[0]; n++) {
+        const slice = d[o + 1], count = d[o + 2]
+        o += 3
+        const pts = new Float32Array(count * 3)
+        for (let i = 0; i < count * 3; i++) pts[i] = d[o + i] / 32767
+        o += count * 3
+        lines.push({ slice, pts })
+      }
+      model = { lines, slices: Math.max(...lines.map((l) => l.slice)) + 1 }
+    })
+    .catch(() => {
+      modelLoad = null // try again on the next reel
+    })
+  return modelLoad
+}
 
-  type Part = { label: string; draw: (ctx: CanvasRenderingContext2D, x: number, y: number, R: number) => void }
-  const ring = (ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number) => {
-    ctx.beginPath()
-    ctx.ellipse(x, y, rx, ry, 0, 0, TAU)
-    ctx.stroke()
-  }
-  // Nearest the cup first; the grille, the outermost layer, travels furthest.
-  const parts: Part[] = [
-    {
-      label: 'CELL',
-      draw: (ctx, x, y, R) => {
-        ctx.beginPath()
-        ctx.moveTo(x - R * 0.2, y - R * 0.3)
-        ctx.lineTo(x + R * 0.12, y - R * 0.42)
-        ctx.lineTo(x + R * 0.2, y + R * 0.3)
-        ctx.lineTo(x - R * 0.12, y + R * 0.42)
-        ctx.closePath()
-        ctx.stroke()
-      },
-    },
-    {
-      label: 'PCB',
-      draw: (ctx, x, y, R) => {
-        ctx.beginPath()
-        ctx.moveTo(x - R * 0.18, y - R * 0.5)
-        ctx.lineTo(x + R * 0.14, y - R * 0.62)
-        ctx.lineTo(x + R * 0.18, y + R * 0.5)
-        ctx.lineTo(x - R * 0.14, y + R * 0.62)
-        ctx.closePath()
-        for (let k = -2; k <= 2; k++) {
-          ctx.moveTo(x - R * 0.1, y + k * R * 0.18)
-          ctx.lineTo(x + R * 0.08, y + k * R * 0.18 - R * 0.04)
-        }
-        ctx.stroke()
-      },
-    },
-    {
-      label: 'COIL',
-      draw: (ctx, x, y, R) => {
-        for (let k = 1; k <= 4; k++) ring(ctx, x, y, R * 0.07 * k, R * 0.15 * k)
-      },
-    },
-    {
-      label: 'DAMPING FOAM',
-      draw: (ctx, x, y, R) => {
-        for (let k = 0; k < 3; k++) ctx.strokeRect(x - R * 0.2 + k * R * 0.17, y - R * 0.55, R * 0.1, R * 1.1)
-      },
-    },
-    {
-      label: 'CONE',
-      draw: (ctx, x, y, R) => {
-        ring(ctx, x, y, R * 0.46, R * 1.08)
-        ring(ctx, x + R * 0.22, y, R * 0.16, R * 0.38)
-        ctx.beginPath()
-        for (const d of [-1, 1]) {
-          ctx.moveTo(x, y + d * R * 1.08)
-          ctx.lineTo(x + R * 0.22, y + d * R * 0.38)
-        }
-        ctx.stroke()
-      },
-    },
-    {
-      label: '40MM DRIVER',
-      draw: (ctx, x, y, R) => {
-        ring(ctx, x, y, R * 0.36, R * 0.95)
-        ring(ctx, x + R * 0.3, y, R * 0.24, R * 0.62)
-        ctx.beginPath()
-        ctx.moveTo(x, y - R * 0.95)
-        ctx.lineTo(x + R * 0.3, y - R * 0.62)
-        ctx.moveTo(x, y + R * 0.95)
-        ctx.lineTo(x + R * 0.3, y + R * 0.62)
-        ctx.stroke()
-        ;[-1, 1].forEach((d) => ring(ctx, x - R * 0.12, y + d * R * 1.12, 3, 3))
-      },
-    },
-    {
-      label: 'GRILLE',
-      draw: (ctx, x, y, R) => {
-        ring(ctx, x, y, R * 0.42, R)
-        // Perforation, foreshortened like the disc.
-        for (let r = 0.25; r < 0.9; r += 0.2) {
-          const n = Math.round(r * 22)
-          for (let k = 0; k < n; k++) {
-            const a = (k / n) * TAU
-            ctx.fillRect(x + Math.cos(a) * r * R * 0.42 - 1, y + Math.sin(a) * r * R - 1, 2, 2)
-          }
-        }
-      },
-    },
+type V3 = [number, number, number]
+
+/**
+ * The cup's inner workings, built as contour line art to match the scanned piece. Each part is
+ * polylines in the cup's own frame: [across, up, along the cup's axis], in model units, centred
+ * on the part. Sized against the cup (0.94 across, ~48mm), so the 40mm driver is 0.39 in radius.
+ */
+const driverParts = (() => {
+  const ring = (r: number, w: number, n = 48, u0 = 0, v0 = 0, wobble?: (a: number) => number): V3[] =>
+    Array.from({ length: n + 1 }, (_, i) => {
+      const a = (i / n) * TAU
+      const rr = r + (wobble ? wobble(a) : 0)
+      return [u0 + Math.cos(a) * rr, v0 + Math.sin(a) * rr, w] as V3
+    })
+  /** Rings stacked through a thickness, plus a few straight edges down the side. */
+  const cylinder = (r: number, w0: number, w1: number, rings = 3, edges = 4) => [
+    ...Array.from({ length: rings }, (_, i) => ring(r, w0 + ((w1 - w0) * i) / (rings - 1))),
+    ...Array.from({ length: edges }, (_, i) => {
+      const a = (i / edges) * TAU + 0.4
+      return [[Math.cos(a) * r, Math.sin(a) * r, w0], [Math.cos(a) * r, Math.sin(a) * r, w1]] as V3[]
+    }),
+  ]
+  const rect = (u: number, v: number, du: number, dv: number, w: number): V3[] => [
+    [u - du, v - dv, w], [u + du, v - dv, w], [u + du, v + dv, w], [u - du, v + dv, w], [u - du, v - dv, w],
   ]
 
+  // Front of the cup (away from the ear) and back (toward it), each listed from the cup outward.
+  const grille: V3[][] = [ring(0.42, -0.012), ring(0.42, 0.012), ring(0.36, 0.012)]
+  for (let v = -0.32; v <= 0.32; v += 0.07) {
+    for (let u = -0.32; u <= 0.32; u += 0.07) {
+      const uu = u + (Math.round(v / 0.07) % 2 ? 0.035 : 0)
+      if (Math.hypot(uu, v) < 0.31) grille.push(ring(0.016, 0.012, 8, uu, v))
+    }
+  }
+
+  const driver: V3[][] = [ring(0.39, 0.04), ring(0.36, 0.04), ring(0.2, -0.07), ...cylinder(0.13, -0.07, -0.17, 4, 6)]
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * TAU + 0.26
+    driver.push([[Math.cos(a) * 0.37, Math.sin(a) * 0.37, 0.04], [Math.cos(a) * 0.2, Math.sin(a) * 0.2, -0.07]])
+  }
+
+  // Frustum rings from the surround down to the dust cap, then the cap's dome.
+  const cone: V3[][] = [ring(0.37, 0.06), ring(0.355, 0.07)]
+  for (let i = 0; i <= 6; i++) cone.push(ring(0.34 - i * 0.042, 0.06 - i * 0.022, 40))
+  cone.push(ring(0.06, -0.06, 24), ring(0.035, -0.045, 20))
+
+  const foam: V3[][] = Array.from({ length: 5 }, (_, i) =>
+    ring(0.35, -0.03 + i * 0.015, 64, 0, 0, (a) => 0.008 * Math.sin(a * 9 + i * 1.3)),
+  )
+
+  const coil: V3[][] = [ring(0.1, -0.07, 32), ring(0.1, 0.07, 32)]
+  coil.push(Array.from({ length: 8 * 24 + 1 }, (_, i) => {
+    const a = (i / 24) * TAU
+    return [Math.cos(a) * 0.107, Math.sin(a) * 0.107, -0.055 + (0.11 * i) / (8 * 24)] as V3
+  }))
+
+  const pcb: V3[][] = [ring(0.3, -0.008), ring(0.3, 0.008), ring(0.035, 0.008, 16)]
+  pcb.push(rect(-0.08, 0.06, 0.06, 0.045, 0.02), rect(0.1, -0.04, 0.045, 0.045, 0.02), rect(-0.02, -0.15, 0.09, 0.025, 0.018))
+  pcb.push(rect(0.14, 0.12, 0.025, 0.018, 0.016), rect(-0.18, -0.05, 0.02, 0.03, 0.016))
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * TAU
+    pcb.push(ring(0.012, 0.008, 8, Math.cos(a) * 0.25, Math.sin(a) * 0.25))
+  }
+
+  const cell: V3[][] = [...cylinder(0.16, -0.025, 0.025, 2, 6), ring(0.13, 0.03, 40)]
+
+  return [
+    { label: 'CONE', lines: cone, side: 1, slot: 0 },
+    { label: '40MM DRIVER', lines: driver, side: 1, slot: 1 },
+    { label: 'GRILLE', lines: grille, side: 1, slot: 2 },
+    { label: 'DAMPING FOAM', lines: foam, side: -1, slot: 0 },
+    { label: 'COIL', lines: coil, side: -1, slot: 1 },
+    { label: 'PCB', lines: pcb, side: -1, slot: 2 },
+    { label: 'CELL', lines: cell, side: -1, slot: 3 },
+  ]
+})()
+
+const projectOpen: Scene = (() => {
+  // The prototype in isometric (orthographic, the true iso angles), taking itself apart and
+  // putting itself back together. The story: the contours draw on from the back of the piece to
+  // the front -> one by one the cup's workings burst out of both faces, tumbling, each blast
+  // jolting the piece -> they hang in an exploded view with callouts -> they're pulled back in
+  // and slam home, innermost first, each landing shaking and lighting the piece.
+  /** The piece (2 units tall) fills this share of the frame height. */
+  const FILL = 0.4
+  // Isometric-style: orthographic, looking down a little lower than true iso (24 degrees, not
+  // 35.3), easing round from 10 degrees off the side view to the iso quarter turn (45).
+  const YAW_FROM = (10 * Math.PI) / 180, YAW_TO = Math.PI / 4
+  const PITCH = (24 * Math.PI) / 180
+  // The cup, measured from the model: its centre, the axis it faces out along, and a frame
+  // (across, up) square to that axis.
+  const CUP: V3 = [0.348, -0.126, 0.158]
+  const AX: V3 = [0.341, 0.015, 0.94]
+  const ACROSS: V3 = (() => {
+    const c: V3 = [AX[2], 0, -AX[0]] // axis x up
+    const l = Math.hypot(...c)
+    return [c[0] / l, c[1] / l, c[2] / l]
+  })()
+  const UP: V3 = [AX[1] * ACROSS[2] - AX[2] * ACROSS[1], AX[2] * ACROSS[0] - AX[0] * ACROSS[2], AX[0] * ACROSS[1] - AX[1] * ACROSS[0]]
+  /**
+   * Where the parts come to rest along the axis, either way from the cup's centre: a clear gap
+   * off its face in front and past the hook behind, then spaced out.
+   */
+  const OUT_FRONT = 0.9, OUT_BACK = 1.35, GAP = 0.56
+
+  // A 3D graph under the piece: a gridded floor, half-width G, at FLOOR, lines every STEP. It
+  // fades out from the middle (visible under the piece, all but gone at the edges), so it's cut
+  // into short segments, each sorted once into one of BANDS brightness bands.
+  const G = 3.2, FLOOR = -1.15, STEP = 0.4, BANDS = 8
+  const graphBands: V3[][] = Array.from({ length: BANDS }, () => [])
+  {
+    const lines: [V3, V3][] = []
+    for (let k = -G; k <= G + 1e-6; k += STEP) lines.push([[k, FLOOR, -G], [k, FLOOR, G]], [[-G, FLOOR, k], [G, FLOOR, k]])
+    for (const [a, b] of lines) {
+      const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) / 0.1))
+      for (let i = 0; i < n; i++) {
+        const p0 = [0, 1, 2].map((j) => a[j] + ((b[j] - a[j]) * i) / n) as V3
+        const p1 = [0, 1, 2].map((j) => a[j] + ((b[j] - a[j]) * (i + 1)) / n) as V3
+        // Distance from the floor's centre, under the piece.
+        const r = Math.hypot((p0[0] + p1[0]) / 2, (p0[2] + p1[2]) / 2) / (G * 1.1)
+        const w = Math.pow(1 - clamp01((r - 0.15) / 0.85), 2)
+        const band = Math.round(w * (BANDS - 1))
+        if (band > 0) graphBands[band].push(p0, p1)
+      }
+    }
+  }
+  /** Beats, as fractions of the scene: bursts start at BURST and follow every BURST_STEP; the pull home starts at HOME. */
+  const BURST = 0.14, BURST_STEP = 0.045, HOME = 0.58, HOME_STEP = 0.04
+  /** How long a part takes to fly out, and to be pulled back in. */
+  const FLY_OUT = 0.07, FLY_IN = 0.06
+  /** How fast a jolt dies away (per unit of p; ~0.4s). */
+  const DECAY = 55
+
+  const hash = (n: number) => {
+    const x = Math.sin(n * 12.9898) * 43758.5453
+    return x - Math.floor(x)
+  }
+  const easeOutBack = (x: number) => 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2)
+  const easeInCubic = (x: number) => x * x * x
+  const jolt = (p: number, at: number) => (p >= at ? Math.exp(-(p - at) * DECAY) : 0)
+
+  // Outermost first, alternating faces, so the piece comes apart from the outside in. Each part
+  // gets its own tumble (an axis in its plane and how far it turns) and a sideways swerve.
+  const order = [...driverParts].sort((a, b) => b.slot - a.slot || b.side - a.side)
+  const plan = order.map((part, i) => ({
+    part,
+    burst: BURST + i * BURST_STEP,
+    // Pulled home in reverse: the last out (innermost) goes back first.
+    home: HOME + (order.length - 1 - i) * HOME_STEP,
+    spinAxis: hash(i + 1) * TAU,
+    spinOut: (hash(i + 11) > 0.5 ? 1 : -1) * (1.6 + hash(i + 21)),
+    spinIn: (hash(i + 31) > 0.5 ? 1 : -1) * (1 + hash(i + 41)),
+    swerve: (hash(i + 51) - 0.5) * 0.7,
+    rest: (part.side > 0 ? OUT_FRONT : OUT_BACK) + part.slot * GAP,
+  }))
+
+  /** Rotates a local [across, up, along] point about an axis in the part's plane. */
+  const tumble = ([u, v, w]: V3, axisAngle: number, angle: number): V3 => {
+    if (!angle) return [u, v, w]
+    const kx = Math.cos(axisAngle), ky = Math.sin(axisAngle)
+    const c = Math.cos(angle), s = Math.sin(angle), dot = kx * u + ky * v
+    // Rodrigues, with the axis (kx, ky, 0).
+    return [
+      u * c + ky * w * s + kx * dot * (1 - c),
+      v * c - kx * w * s + ky * dot * (1 - c),
+      w * c + (kx * v - ky * u) * s,
+    ]
+  }
+
   return {
-    title: 'Project Open',
-    meta: 'Interaction Design · 2025',
-    tags: 'OPEN-EAR AUDIO / BANDLESS / 3D MODELING',
-    readouts: ({ p }) => [
-      ['FIT TESTS', '30+'],
-      ['EARS MAPPED', '90'],
-      ['VIEW', phaseOf(p)],
-    ],
+    description:
+      'Open-back headphones for city life, with a bandless hook that sits over the ear instead of a headband.',
     draw: ({ ctx, box, p, t, reveal, col, pal }) => {
-      const cx = box.x + box.w / 2, cy = box.y + box.h / 2
-      const e = ramp(p, EXPLODE[0], EXPLODE[1]) * (1 - ramp(p, COLLAPSE[0], COLLAPSE[1])) // 0 assembled .. 1 exploded
-      const S0 = Math.min(box.h * 0.27, box.w * 0.27)
-      // Narrow frames shrink the piece on its way out, so the exploded row still fits.
-      const fit = Math.min(1, (box.w * 0.94) / (SPAN * S0))
-      const S = S0 * (1 + (fit - 1) * e)
-      // Assembled (and worn), the piece and ear are centred; exploded, the piece and its parts are.
-      const ox = cx + S * (0.08 - 1.655 * e), oy = cy - S * 0.04
-      const P = ([u, v]: Pt): Pt => [ox + u * S, oy + v * S]
-      const map = (pts: Pt[]) => pts.map(P)
-      const [ux, uy] = P(CUP)
-      const float = Math.sin(t * 1.4) * 3 * e
-      // The ear draws in (and, at the handoff, back out) with the scene.
-      const earIn = ramp(p, EAR[0], EAR[1]) * reveal
+      const cx = box.x + box.w / 2, cy = box.y + box.h / 2 - 12
+      // Pixels per model unit: FILL of the frame, less on narrow frames so the exploded view
+      // (about 2.3 units either side of centre, once foreshortened) still fits across.
+      const ppu = Math.min((FILL * box.h) / 2, box.w / 2 / 2.3)
+
+      // Every burst and every landing jolts the piece; landings hit harder.
+      let hit = 0
+      for (const q of plan) hit += 0.6 * jolt(p, q.burst) + jolt(p, q.home + FLY_IN)
+      hit = Math.min(1.4, hit)
+      // The jolt shakes the whole piece a little and shears its contours apart.
+      const shakeX = Math.sin(t * 57) * 0.025 * hit, shakeY = Math.cos(t * 43) * 0.02 * hit
+
+      const yaw = YAW_FROM + (YAW_TO - YAW_FROM) * ramp(p, 0, 0.85)
+      const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(PITCH), sp = Math.sin(PITCH)
+      /** Model point -> screen point and depth (-1 far .. 1 near, roughly). Orthographic. */
+      const project = (x: number, y: number, z: number): V3 => {
+        const x1 = x * cyw + z * syw, z1 = z * cyw - x * syw
+        const y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp
+        return [cx + x1 * ppu, cy - y2 * ppu, z2]
+      }
+      const stroke = (n: number, at: (i: number) => V3, tint: number, a: number) => {
+        let depth = 0
+        ctx.beginPath()
+        for (let i = 0; i < n; i++) {
+          const [X, Y, Z] = at(i)
+          i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)
+          depth += Z
+        }
+        // Depth cue: the near side reads brighter than the far side.
+        const near = clamp01((depth / n + 1) / 2)
+        ctx.strokeStyle = col(mix(pal.hi, WHITE, Math.min(1, tint + 0.25 * near)), Math.min(1, (0.18 + 0.62 * near) * a))
+        ctx.stroke()
+      }
       ctx.lineWidth = 1
 
-      // ---- Exploded view ----
-      const Rp = S * 0.34
-      const partX = (k: number) => ux + (CUP_R + 0.16 + k * GAP) * S * e
-      if (e > 0.01) {
-        ctx.setLineDash([2, 5])
-        ctx.strokeStyle = col(pal.hi, 0.35 * e)
+      // The graph, drawing on with the scene: one path per brightness band.
+      graphBands.forEach((segs, band) => {
+        if (!segs.length) return
         ctx.beginPath()
-        ctx.moveTo(ux, uy)
-        ctx.lineTo(partX(parts.length - 1) + S * 0.4 * e, uy)
-        ctx.stroke()
-        ctx.setLineDash([])
-      }
-      // Parts ride out of the cup along the axis, then home again; the cup (drawn over them) hides
-      // each one until it's clear of the rim.
-      parts.forEach((part, k) => {
-        const x = partX(k)
-        const y = uy + (k % 2 ? float : -float)
-        const a = clamp01((x - ux - CUP_R * S) / (S * 0.2))
-        if (a <= 0) return
-        ctx.strokeStyle = col(k % 2 ? pal.hi : WHITE, 0.85 * a)
-        ctx.fillStyle = col(pal.hi, 0.85 * a)
-        part.draw(ctx, x, y, Rp)
-        // Callout, when there's room between the parts for the labels.
-        const c = clamp01((e - 0.7) / 0.3)
-        if (c > 0 && GAP * S >= 44) {
-          const ly = uy - Rp * 1.25 - 14 - (k % 2) * 16
-          ctx.strokeStyle = col(WHITE, 0.4 * c)
-          ctx.beginPath()
-          ctx.moveTo(x, y - Rp * 1.16)
-          ctx.lineTo(x, ly + 4)
-          ctx.stroke()
-          ctx.fillStyle = col(WHITE, 0.8 * c)
-          ctx.textAlign = 'center'
-          label(ctx, part.label, x, ly, 9)
-          ctx.textAlign = 'left'
+        for (let i = 0; i < segs.length; i += 2) {
+          const [x0, y0] = project(...segs[i]), [x1, y1] = project(...segs[i + 1])
+          ctx.moveTo(x0, y0)
+          ctx.lineTo(x1, y1)
         }
+        ctx.strokeStyle = col(pal.hi, 0.26 * (band / (BANDS - 1)) * reveal)
+        ctx.stroke()
       })
 
-      // ---- The ear, drawn in under the piece as it comes back together ----
-      const [kx, ky] = P(CANAL)
-      const drawEar = () => {
-        const outline = map(ear.outline)
-        const shape = (pts: Pt[]) => {
-          ctx.beginPath()
-          pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)))
-          ctx.closePath()
+      if (model) {
+        // Draws on (and off, at the handoff) as a sweep through the slices, back to front.
+        const FEATHER = 10
+        const sweep = reveal * (model.slices + FEATHER)
+        for (const line of model.lines) {
+          const on = clamp01((sweep - line.slice) / FEATHER)
+          if (on <= 0) continue
+          const q = line.pts
+          // Each slice slips sideways by its own amount while the piece is jolted.
+          const slip = (hash(line.slice) - 0.5) * 0.16 * hit
+          const ox = shakeX + ACROSS[0] * slip, oy = shakeY + ACROSS[1] * slip, oz = ACROSS[2] * slip
+          stroke(q.length / 3, (i) => project(q[i * 3] + ox, q[i * 3 + 1] + oy, q[i * 3 + 2] + oz), 0.35 * Math.min(1, hit), on * (1 + 0.4 * hit))
         }
-        // A solid silhouette, so the ear reads as a shape and not a tangle over the dot grid, with
-        // the concha shaded in as a hollow.
-        shape([...outline, ...map(ear.front)])
-        ctx.fillStyle = col(pal.lo, earIn)
-        ctx.fill()
-        ctx.fillStyle = col(pal.mid, 0.14 * earIn)
-        ctx.fill()
-        shape(map(ear.bowl))
-        ctx.fillStyle = col(pal.lo, 0.75 * earIn)
-        ctx.fill()
-        ctx.lineCap = 'round'
-        ctx.lineJoin = 'round'
-        ctx.lineWidth = 1.6
-        ctx.strokeStyle = col(WHITE, 0.95)
-        strokeTo(ctx, outline, earIn)
-        // The folds follow the rim in, each a beat behind the last.
-        ctx.lineWidth = 1
-        const fold = (pts: Pt[], a: number, lag: number) => {
-          const f = clamp01((earIn - lag) / (1 - lag))
-          if (f <= 0) return
-          ctx.strokeStyle = col(WHITE, a)
-          strokeTo(ctx, map(pts), f)
-        }
-        fold(ear.rim, 0.7, 0.1)
-        fold(ear.antihelix, 0.6, 0.2)
-        fold(ear.crus, 0.5, 0.3)
-        fold(ear.concha, 0.45, 0.3)
-        fold(ear.tragus, 0.85, 0.25)
-        ctx.lineCap = 'butt'
-        ctx.lineJoin = 'miter'
-        // The canal, left clear.
-        ctx.beginPath()
-        ctx.ellipse(kx, ky, S * 0.045, S * 0.065, -0.3, 0, TAU)
-        ctx.fillStyle = col(WHITE, 0.18 * earIn)
-        ctx.fill()
-        ctx.strokeStyle = col(WHITE, 0.7 * earIn)
-        ctx.stroke()
-      }
-      if (earIn > 0) drawEar()
-
-      // ---- The piece ----
-      // Hook, bar and arms are tubes: a wide light stroke with a dark core.
-      const tube = (pts: Pt[], width: number) => {
-        if (reveal <= 0) return
-        ctx.lineCap = 'round'
-        ctx.lineJoin = 'round'
-        ctx.lineWidth = width * S
-        ctx.strokeStyle = col(pal.hi, 0.9)
-        strokeTo(ctx, pts, reveal)
-        ctx.lineWidth = width * S - 2.4
-        ctx.strokeStyle = col(pal.lo, 1)
-        strokeTo(ctx, pts, reveal)
-        ctx.lineCap = 'butt'
-        ctx.lineJoin = 'miter'
-        ctx.lineWidth = 1
-      }
-      const ball = (c: Pt, r: number) => {
-        const [x, y] = P(c), rr = r * S * reveal
-        ctx.beginPath()
-        ctx.arc(x, y, rr, 0, TAU)
-        ctx.fillStyle = col(pal.lo, 1)
-        ctx.fill()
-        ctx.strokeStyle = col(pal.hi, 0.9)
-        ctx.stroke()
-        // A glint, so it reads as a ball rather than a ring.
-        ctx.beginPath()
-        ctx.arc(x, y, rr * 0.62, Math.PI * 1.05, Math.PI * 1.55)
-        ctx.strokeStyle = col(WHITE, 0.55)
-        ctx.stroke()
-      }
-      tube(map(hook), 0.11)
-      tube(map(bar), 0.14)
-      tube(map(backStem), 0.08)
-      tube(map(lowArm), 0.08)
-      ball(BALL_BACK, 0.16)
-      ball(BALL_LOW, 0.15)
-      tube(map([KNUCKLE, [CUP[0] - 0.04, CUP[1] - CUP_R + 0.04]]), 0.1)
-      ball(KNUCKLE, 0.12)
-
-      // Cup: a shallow dome, angled a touch forward, so a sliver of its wall shows on the ear side.
-      const r = CUP_R * S * reveal
-      const wall = r * 0.1
-      ctx.beginPath()
-      ctx.arc(ux - wall, uy, r, 0, TAU)
-      ctx.fillStyle = col(pal.lo, 1)
-      ctx.fill()
-      ctx.strokeStyle = col(pal.hi, 0.6)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.moveTo(ux - wall, uy - r)
-      ctx.lineTo(ux, uy - r)
-      ctx.moveTo(ux - wall, uy + r)
-      ctx.lineTo(ux, uy + r)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.arc(ux, uy, r, 0, TAU)
-      ctx.fillStyle = col(pal.lo, 1)
-      ctx.fill()
-      // Once worn, its face turns see-through to the ear behind it (it's open-back): the ear is
-      // drawn again inside it, dimmed, while the arms and bar that run under it stay hidden.
-      if (earIn > 0 && r > 0) {
-        ctx.save()
-        ctx.clip()
-        ctx.globalAlpha *= 0.5
-        drawEar()
-        ctx.restore()
-      }
-      ctx.beginPath()
-      ctx.arc(ux, uy, r, 0, TAU)
-      ctx.strokeStyle = col(WHITE, 0.9)
-      ctx.stroke()
-      // The dome's shoulder, and a glint across its upper edge.
-      ctx.strokeStyle = col(pal.hi, 0.45)
-      ring(ctx, ux + r * 0.08, uy, r * 0.8, r * 0.8)
-      ctx.beginPath()
-      ctx.arc(ux + r * 0.08, uy, r * 0.66, Math.PI * 1.08, Math.PI * 1.42)
-      ctx.strokeStyle = col(WHITE, 0.4)
-      ctx.stroke()
-      // The ring on its crown, set forward of centre like the prototype's.
-      const [rx, ry] = [ux + r * 0.26, uy - r * 0.02]
-      ctx.beginPath()
-      ctx.arc(rx, ry, r * 0.3, 0, TAU)
-      ctx.arc(rx, ry, r * 0.19, 0, TAU, true)
-      ctx.fillStyle = col(pal.hi, 0.18)
-      ctx.fill()
-      ctx.strokeStyle = col(WHITE, 0.85)
-      ring(ctx, rx, ry, r * 0.3, r * 0.3)
-      ctx.strokeStyle = col(pal.hi, 0.8)
-      ring(ctx, rx, ry, r * 0.19, r * 0.19)
-
-      // ---- Sound: ambient reaching the open canal, audio from the cup ----
-      const snd = ramp(p, SOUND[0], SOUND[1]) * reveal
-      if (snd > 0) {
-        // Ambient: dotted fronts arriving from behind, converging on the canal (brightest mid-flight).
-        ctx.setLineDash([2, 4])
-        for (let k = 0; k < 4; k++) {
-          const f = (t * 0.5 + k / 4) % 1
-          ctx.beginPath()
-          ctx.arc(kx, ky, S * (0.16 + (1 - f) * 1.2), Math.PI - 0.45, Math.PI + 0.45)
-          ctx.strokeStyle = col(pal.hi, snd * 0.8 * Math.sin(f * Math.PI))
-          ctx.stroke()
-        }
-        ctx.setLineDash([])
-        // Audio: fronts spreading from the driver, through the open back, toward the canal.
-        const aim = Math.atan2(ky - ry, kx - rx)
-        for (let k = 0; k < 3; k++) {
-          const f = (t * 0.9 + k / 3) % 1
-          ctx.beginPath()
-          ctx.arc(rx, ry, r * (0.36 + f * 1.1), aim - 0.5, aim + 0.5)
-          ctx.strokeStyle = col(WHITE, snd * 0.85 * (1 - f))
-          ctx.stroke()
-        }
-        // The canal lights as it arrives.
-        ctx.beginPath()
-        ctx.arc(kx, ky, 2.5, 0, TAU)
-        ctx.fillStyle = col(WHITE, snd * (0.6 + 0.4 * Math.sin(t * 4)))
-        ctx.fill()
-        ctx.textAlign = 'center'
-        ctx.fillStyle = col(WHITE, 0.6 * snd)
-        const [ax, ay] = P([-1.5, 0.14]), [bx, by] = P([1.26, 0.06])
-        label(ctx, 'AMBIENT', ax, ay, 9)
-        label(ctx, 'AUDIO', bx, by, 9)
-        ctx.fillStyle = col(WHITE, 0.9 * snd)
-        label(ctx, 'EAR STAYS OPEN', cx, P([0, 1.46])[1], 10, 600)
-        ctx.textAlign = 'left'
       }
 
-      // Oscilloscope along the foot, centred.
-      const wy = box.y + box.h - 14, ww = Math.min(box.w * 0.46, S * 4), wx = cx - ww / 2
+      const labels: [string, number, number, number][] = []
+      plan.forEach((q, k) => {
+        const { part } = q
+        const uo = clamp01((p - q.burst) / FLY_OUT), ui = clamp01((p - q.home) / FLY_IN)
+        const out = easeOutBack(uo) * (1 - easeInCubic(ui))
+        const d = part.side * q.rest * out
+        // Hidden while inside the cup; it appears as it clears the face.
+        const a = clamp01((Math.abs(d) - 0.3) / 0.15) * reveal
+        if (a <= 0) return
+        // Tumbles out and settles square; tumbles again as it's dragged home. Swerves in flight.
+        const angle = q.spinOut * (1 - easeOutCubic(uo)) + q.spinIn * easeInCubic(ui)
+        const swerve = q.swerve * (Math.sin(Math.PI * uo) * (1 - uo) + Math.sin(Math.PI * ui))
+        const bob = Math.sin(t * 1.4 + k * 1.7) * 0.02 * out
+        const toModel = (pt: V3): V3 => {
+          const [u, v, w] = tumble(pt, q.spinAxis, angle)
+          const along = d + w
+          return [0, 1, 2].map((j) => CUP[j] + AX[j] * along + ACROSS[j] * u + UP[j] * (v + bob + swerve)) as V3
+        }
+        for (const line of part.lines) stroke(line.length, (i) => project(...toModel(line[i])), 0.3, a)
+        // Callout above (or, alternating, below) the part while it hangs in the exploded view.
+        // (Behind the cup the pattern flips, so the nearest part's callout clears the hook.)
+        const below = (part.slot + (part.side < 0 ? 1 : 0)) % 2
+        const [lx, ly, lz] = project(...toModel([0, below ? -0.5 : 0.5, 0]))
+        const shown = clamp01((p - q.burst - FLY_OUT) / 0.04) * (1 - clamp01((p - q.home) / 0.02))
+        labels.push([part.label, lx, ly, shown * reveal * (0.5 + 0.4 * clamp01((lz + 1) / 2))])
+      })
+      ctx.textAlign = 'center'
+      for (const [text, x, y, a] of labels) {
+        if (a <= 0) continue
+        ctx.fillStyle = col(WHITE, a)
+        label(ctx, text, x, y, 9)
+      }
+      ctx.textAlign = 'left'
+
+      // Oscilloscope along the top, centred; it spikes with each jolt.
+      const wy = box.y + 10, ww = Math.min(box.w * 0.46, ppu * 2.4), wx = cx - ww / 2
+      const amp = 1 + 1.5 * hit
       ctx.beginPath()
       for (let i = 0; i <= 200 * reveal; i++) {
         const u = i / 200
-        const Y = wy + Math.sin(u * 40 + t * 8) * 6 * Math.sin(u * Math.PI) + Math.sin(u * 13 - t * 3) * 3 * Math.sin(u * Math.PI)
+        const Y = wy + (Math.sin(u * 40 + t * 8) * 6 * Math.sin(u * Math.PI) + Math.sin(u * 13 - t * 3) * 3 * Math.sin(u * Math.PI)) * amp
         i ? ctx.lineTo(wx + u * ww, Y) : ctx.moveTo(wx, Y)
       }
       ctx.strokeStyle = col(pal.hi, 0.8)
@@ -1227,7 +1106,14 @@ const projectOpen: Scene = (() => {
   }
 })()
 
-const SCENES: Scene[] = [xbox, foreflight, whoOwnsSeattle, projectOpen]
+const SCENES: Scene[] = [projectOpen, xbox, foreflight, whoOwnsSeattle]
+export const SCENE_COUNT = SCENES.length
+
+/**
+ * Start of the slot that draws itself on from nothing, with no handoff bringing it in: the first
+ * one on load, or wherever a jump landed. Module-level so a remount mid-slot doesn't lose it.
+ */
+let freshAt = 0
 
 // ---------- Engine ----------
 
@@ -1238,6 +1124,7 @@ const SCENES: Scene[] = [xbox, foreflight, whoOwnsSeattle, projectOpen]
 export function createReel(canvas: HTMLCanvasElement, { bottomPad = 0 } = {}) {
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
+  const modelReady = loadModel()
   let w = 0, h = 0, dpr = 1
 
   const col = (c: RGB, a = 1) => `rgba(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)},${a})`
@@ -1280,12 +1167,14 @@ export function createReel(canvas: HTMLCanvasElement, { bottomPad = 0 } = {}) {
   }
 
   return {
-    /** The case study slug for whatever is on screen at this time (if it has one). */
-    currentSlug(time: number) {
-      // The HUD switches to the next project halfway through the handoff, so this does too.
+    /** Resolves once Project Open's model is in (or failed), for redrawing a still frame. */
+    modelReady,
+
+    /** A clock time, after `time`, where scene i starts fresh (draws on from nothing). */
+    jumpTo(i: number, time: number) {
       const cycle = SCENES.length * SCENE_SECONDS
-      const tt = (((time + HANDOFF_SECONDS / 2) % cycle) + cycle) % cycle
-      return SCENES[Math.floor(tt / SCENE_SECONDS)].slug
+      freshAt = Math.ceil((time + 0.001) / cycle) * cycle + i * SCENE_SECONDS
+      return freshAt
     },
 
     resize(width: number, height: number, ratio: number) {
@@ -1296,7 +1185,7 @@ export function createReel(canvas: HTMLCanvasElement, { bottomPad = 0 } = {}) {
       canvas.height = Math.max(1, Math.round(h * dpr))
     },
 
-    draw(time: number, pal: Palette, pointer: Pointer) {
+    draw(time: number, pal: Palette, pointer: Pointer): Hud | undefined {
       if (!w || !h) return
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.fillStyle = col(pal.lo)
@@ -1319,31 +1208,27 @@ export function createReel(canvas: HTMLCanvasElement, { bottomPad = 0 } = {}) {
       const tt = ((time % cycle) + cycle) % cycle
       const idx = Math.floor(tt / SCENE_SECONDS)
       // phase: where we are in this scene's slot. local: the scene's own clock, which began at the
-      // handoff that brought it in, a handoff's length before its slot. The very first scene on
-      // load had no handoff, so its clock runs a little fast to fit its whole life into the slot.
+      // handoff that brought it in, a handoff's length before its slot. A fresh scene (the first on
+      // load, or one jumped to) had no handoff, so its clock runs a little fast to fit its whole
+      // life into the slot.
       const phase = tt - idx * SCENE_SECONDS
-      const local = time < SCENE_SECONDS ? phase * (LIFE_SECONDS / SCENE_SECONDS) : phase + HANDOFF_SECONDS
+      const fresh = time >= freshAt && time < freshAt + SCENE_SECONDS
+      const local = fresh ? phase * (LIFE_SECONDS / SCENE_SECONDS) : phase + HANDOFF_SECONDS
       const next = (idx + 1) % SCENES.length
       // The stage: the space between the HUD's top and bottom bands, where each scene composes
       // itself around the centre. Big frames scale the scenes up (to 1.5x) instead of spreading
       // them out, and very wide ones just get more margin, so the work stays gathered in the middle.
-      const aw = w - 2 * m - 16, ah = h - bottomPad - 2 * m - 130
+      const aw = w - 2 * m - 16, ah = h - bottomPad - 2 * m - 170
       const k = Math.min(1.5, Math.max(1, ah / 600))
       const bh = ah / k, bw = Math.min(aw / k, bh * 2.3)
       const stage: Stage = { x: m + 8 + (aw - bw * k) / 2, y: m + 44, k, box: { x: 0, y: 0, w: bw, h: bh } }
 
-      // The art drifts slightly against the pointer.
-      const px = pointer.x > -999 ? (pointer.x / w - 0.5) * -10 : 0
-      const py = pointer.y > -999 ? (pointer.y / h - 0.5) * -6 : 0
-      ctx.save()
-      ctx.translate(px, py)
       // Handoff: the last stretch of each slot, where this scene draws itself off as the next one
       // draws on over it. q runs 0..1 through it (0 when there isn't one under way).
       const handoffAt = SCENE_SECONDS - HANDOFF_SECONDS
       const q = phase > handoffAt ? (phase - handoffAt) / HANDOFF_SECONDS : 0
-      const s = drawScene(SCENES[idx], local, stage, pal)
-      const incoming = q > 0 ? drawScene(SCENES[next], phase - handoffAt, stage, pal) : null
-      ctx.restore()
+      drawScene(SCENES[idx], local, stage, pal)
+      if (q > 0) drawScene(SCENES[next], phase - handoffAt, stage, pal)
 
       // Vignette: edges fall away to the ground colour, heaviest at the foot, so the frame reads
       // like a film still and the bottom edge feels like a threshold into the page below.
@@ -1360,87 +1245,19 @@ export function createReel(canvas: HTMLCanvasElement, { bottomPad = 0 } = {}) {
 
       // ---- HUD ----
       const shown = q > 0.5 ? SCENES[next] : SCENES[idx]
-      const hs: SceneCtx = q > 0.5 && incoming ? incoming : s
-      // The words hand over too: the old title lifts away as it fades, the new one rises into place.
+      // The words hand over too: the old description lifts away as it fades, the new one rises into place.
       const fade = q > 0 ? easeInOutCubic(Math.abs(q - 0.5) * 2) : clamp01(local / 0.6)
       const lift = (1 - fade) * 8 * (q > 0 && q < 0.5 ? -1 : 1)
 
-      const shownIdx = q > 0.5 ? next : idx
-      ctx.fillStyle = col(WHITE, 0.7)
-      label(ctx, `SELECTED WORK   ${String(shownIdx + 1).padStart(2, '0')} / ${String(SCENES.length).padStart(2, '0')}`, m + 8, m + 20, 10)
-      // Narrow (phone) frames keep just the title, index and progress; the rest would collide.
-      const compact = w < 640
-      if (!compact) {
-        ctx.textAlign = 'right'
-        ctx.fillStyle = col(WHITE, 0.55 * fade)
-        label(ctx, shown.tags, w - m - 8, m + 20 + lift, 10)
-        ctx.textAlign = 'left'
-      }
-
-      // Title + meta, bottom left.
+      // Description, bottom left, wrapped and stacked up from its last line. The call to action
+      // under it is a DOM link (see HomeHeader), placed from the HUD state this returns.
       const hb = h - bottomPad // the HUD's floor
-      const ty = hb - m - 22 + lift
+      const ty = hb - m - 54 + lift
+      const size = w < 640 ? 14 : 16, leading = Math.round(size * 1.45)
+      ctx.font = `500 ${size}px "Open Sauce One", system-ui, sans-serif`
+      const lines = wrap(ctx, shown.description, Math.min(460, w - 2 * m - 16))
       ctx.fillStyle = col(WHITE, fade)
-      label(ctx, shown.title.toUpperCase(), m + 8, ty - 16, Math.round(Math.min(40, Math.max(26, w * 0.028))), 900)
-      ctx.fillStyle = col(WHITE, 0.6 * fade)
-      label(ctx, shown.meta, m + 8, ty + 6, 11)
-
-      // Readouts, bottom right. When a word changes (a status, a phase) the old one fades out and
-      // the new one fades in; counters just tick.
-      ctx.textAlign = 'right'
-      if (!compact) {
-        const span = READOUT_FADE / (LIFE_SECONDS - 2 * SHOWN_SECONDS) // in p
-        const valuesAt = (p: number) => shown.readouts({ ...hs, p: Math.max(0, p) })
-        const before = valuesAt(hs.p - span)
-        shown.readouts(hs).forEach(([k, v], i) => {
-          const y = hb - m - 76 + i * 20
-          ctx.fillStyle = col(WHITE, 0.45 * fade)
-          label(ctx, k, w - m - 128, y, 9)
-          const was = before[i][1]
-          let u = 1 // 0 at the change .. 1 once the new word is fully in
-          if (was !== v && !/\d/.test(was + v)) {
-            // Find when it changed.
-            let lo = hs.p - span, hi = hs.p
-            for (let n = 0; n < 8; n++) {
-              const mid = (lo + hi) / 2
-              if (valuesAt(mid)[i][1] === v) hi = mid
-              else lo = mid
-            }
-            u = (hs.p - hi) / span
-            ctx.fillStyle = col(WHITE, 0.95 * fade * clamp01(1 - u * 2))
-            label(ctx, was, w - m - 8, y, 11)
-          }
-          ctx.fillStyle = col(WHITE, 0.95 * fade * clamp01(u * 2 - 1))
-          label(ctx, v, w - m - 8, y, 11)
-        })
-      }
-      ctx.textAlign = 'left'
-
-      // Scroll cue, bottom centre: points at this project's case study when there is one.
-      if (!compact) {
-        const cueText = shown.slug ? 'VIEW CASE STUDY' : 'CASE STUDIES BELOW'
-        const cx = w / 2, cy = hb - m - 34
-        ctx.textAlign = 'center'
-        ctx.fillStyle = col(WHITE, 0.85 * fade)
-        label(ctx, cueText, cx, cy, 10, 600)
-        ctx.textAlign = 'left'
-        // A short line with a light travelling down it, then the chevron.
-        const lineTop = cy + 8, lineLen = 16
-        ctx.fillStyle = col(WHITE, 0.2)
-        ctx.fillRect(cx - 0.5, lineTop, 1, lineLen)
-        const u = (time * 0.8) % 1
-        // Fades in at the top as well as out at the bottom, so the loop has no seam.
-        ctx.fillStyle = col(WHITE, 0.95 * Math.sin(u * Math.PI))
-        ctx.fillRect(cx - 0.5, lineTop + u * lineLen, 1, 5)
-        ctx.strokeStyle = col(WHITE, 0.85)
-        ctx.lineWidth = 1.2
-        ctx.beginPath()
-        ctx.moveTo(cx - 4, lineTop + lineLen + 1)
-        ctx.lineTo(cx, lineTop + lineLen + 5)
-        ctx.lineTo(cx + 4, lineTop + lineLen + 1)
-        ctx.stroke()
-        ctx.lineWidth = 1
-      }
+      lines.forEach((line, i) => label(ctx, line, m + 8, ty - 16 - (lines.length - 1 - i) * leading, size, 500))
 
       // Progress: one segment per project.
       const segW = 26, segY = hb - m - 2
@@ -1452,6 +1269,13 @@ export function createReel(canvas: HTMLCanvasElement, { bottomPad = 0 } = {}) {
         ctx.fillStyle = col(WHITE, 0.9)
         ctx.fillRect(x, segY - 12, segW * fill, 2)
       })
+
+      return {
+        x: m + 8,
+        y: ty - lift + 12, // a small gap under the description
+        bar: { x: w - m - 8 - SCENES.length * (segW + 4) + 4, y: segY - 11 },
+        idx,
+      }
     },
   }
 }

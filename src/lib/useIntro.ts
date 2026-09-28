@@ -1,7 +1,7 @@
 import type { RefObject } from 'react'
 import { gsap, SplitText, useGSAP } from './gsap'
 
-/** Page-load reveal: masked line rise for [data-split] text, fade-up for .intro-fade. */
+/** Page-load reveal: masked line rise for [data-split] text, fade-up for .intro-fade, drop-in for .back-drop. */
 export function useIntro(scope: RefObject<HTMLElement>) {
   useGSAP(
     () => {
@@ -16,6 +16,8 @@ export function useIntro(scope: RefObject<HTMLElement>) {
           tl.from(split.lines, { yPercent: 135, duration: 1.3, stagger: 0.08 }, i * 0.12)
         })
         tl.from(q('.intro-fade'), { y: 14, autoAlpha: 0, duration: 1, stagger: 0.06 }, 0.3)
+        // Go Back bars always move downwards: they drop in from above.
+        tl.from(q('.back-drop'), { yPercent: -100, autoAlpha: 0, duration: 0.9, ease: 'expo.out' }, 0.2)
 
         return () => splits.forEach((s) => s.revert())
       })

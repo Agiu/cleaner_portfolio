@@ -5,7 +5,11 @@ import { hasRevealed, markRevealed } from '../lib/revealed'
 import { gsap, useGSAP } from '../lib/gsap'
 import { canExpand, expandToHero } from '../lib/pageTransition'
 
-type Props = { study: CaseStudyData }
+type Props = {
+  study: CaseStudyData
+  /** Already in place when scrolled to: no rise-in and no reveal (the first row, under the header). */
+  settled?: boolean
+}
 
 /**
  * One case study row. The motion is split in two layers:
@@ -15,7 +19,7 @@ type Props = { study: CaseStudyData }
  *    ease, played on enter and reversed on leave-back, so they always land
  *    with the same crisp timing regardless of scroll speed.
  */
-export function CaseStudy({ study }: Props) {
+export function CaseStudy({ study, settled = false }: Props) {
   const root = useRef<HTMLElement>(null)
   const navigate = useNavigate()
   const to = `/case-study/${study.slug}`
@@ -58,7 +62,7 @@ export function CaseStudy({ study }: Props) {
           const onScreenAtLoad = trigger!.getBoundingClientRect().top < window.innerHeight
 
           // 1. Rise-in: row travels up and fades in from 0% as it enters the viewport.
-          if (!onScreenAtLoad) gsap.fromTo(
+          if (!onScreenAtLoad && !settled) gsap.fromTo(
             q('.cs-inner'),
             { y: 105, autoAlpha: 0 },
             {
@@ -95,7 +99,7 @@ export function CaseStudy({ study }: Props) {
           // 3. Reveal: sheet wipes off the text panel, content follows it in. Once per visit —
           //    it doesn't reverse on scroll-up or replay when returning to the list.
           const revealKey = `card:${study.slug}`
-          if (!hasRevealed(revealKey)) {
+          if (!settled && !hasRevealed(revealKey)) {
             gsap
               .timeline({
                 scrollTrigger: { trigger, start: onScreenAtLoad ? 'top bottom' : 'top 78%', once: true },
@@ -144,7 +148,7 @@ export function CaseStudy({ study }: Props) {
         },
       )
     },
-    { scope: root, dependencies: [study.mediaSide] },
+    { scope: root, dependencies: [study.mediaSide, settled] },
   )
 
   return (

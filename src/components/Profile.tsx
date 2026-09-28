@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import arrowDown from '../assets/arrow-down.svg'
 import arrowNe from '../assets/arrow-ne.svg'
 import linkRule from '../assets/link-rule.svg'
 import { profile } from '../data/caseStudies'
@@ -30,7 +31,19 @@ export function Intro() {
  * right and redraws from the left, the label nudges in, and the arrow exits up-right while a
  * copy arrives from the bottom-left.
  */
-export function ArrowLink({ href, label }: { href: string; label: string }) {
+export function ArrowLink({
+  href,
+  label,
+  down = false,
+  onClick,
+}: {
+  href: string
+  label: string
+  /** A straight down arrow right after the label, with the rule only as wide as the two. */
+  down?: boolean
+  /** Replaces the default follow behaviour. */
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
+}) {
   const root = useRef<HTMLAnchorElement>(null)
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -48,8 +61,14 @@ export function ArrowLink({ href, label }: { href: string; label: string }) {
       .to(q('.arrow-link-rule'), { scaleX: 0, transformOrigin: '100% 50%', duration: 0.3, ease: 'power2.in' }, 0)
       .set(q('.arrow-link-rule'), { transformOrigin: '0% 50%' })
       .to(q('.arrow-link-rule'), { scaleX: 1, duration: 0.6, ease: 'expo.out' })
-      .to(q('.arrow-link-icon--out'), { x: 14, y: -8, duration: 0.35, ease: 'power2.in' }, 0)
-      .fromTo(q('.arrow-link-icon--in'), { x: -14, y: 8 }, { x: 0, y: 0, duration: 0.55, ease: 'expo.out' }, 0.25)
+      // The arrow leaves the way it points and a copy follows in behind it.
+      .to(q('.arrow-link-icon--out'), { ...(down ? { y: 12 } : { x: 14, y: -8 }), duration: 0.35, ease: 'power2.in' }, 0)
+      .fromTo(
+        q('.arrow-link-icon--in'),
+        down ? { x: 0, y: -12 } : { x: -14, y: 8 },
+        { x: 0, y: 0, duration: 0.55, ease: 'expo.out' },
+        0.25,
+      )
       .to(q('.arrow-link-label'), { x: 4, duration: 0.5, ease: 'expo.out' }, 0)
   })
 
@@ -68,18 +87,18 @@ export function ArrowLink({ href, label }: { href: string; label: string }) {
   return (
     <a
       ref={root}
-      className="arrow-link"
+      className={`arrow-link${down ? ' arrow-link--down' : ''}`}
       href={href}
       {...(internal ? {} : { target: '_blank', rel: 'noreferrer' })}
-      onClick={follow}
+      onClick={onClick ?? follow}
       onMouseEnter={enter}
       onMouseLeave={leave}
     >
       <span className="arrow-link-row">
         <span className="arrow-link-label">{label}</span>
         <span className="arrow-link-arrow" aria-hidden="true">
-          <img className="arrow-link-icon arrow-link-icon--out" src={arrowNe} alt="" />
-          <img className="arrow-link-icon arrow-link-icon--in" src={arrowNe} alt="" />
+          <img className="arrow-link-icon arrow-link-icon--out" src={down ? arrowDown : arrowNe} alt="" />
+          <img className="arrow-link-icon arrow-link-icon--in" src={down ? arrowDown : arrowNe} alt="" />
         </span>
       </span>
       <img className="arrow-link-rule" src={linkRule} alt="" />

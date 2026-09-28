@@ -1,13 +1,18 @@
 import { useRef } from 'react'
 import { gsap, useGSAP } from '../lib/gsap'
-import { useTimeOfDay } from '../lib/timeOfDay'
+import type { Palette } from '../lib/timeOfDay'
 import { scrollToTarget } from '../lib/useSmoothScroll'
-import { createReel, STILL_TIME } from '../lib/workReel'
+import { createReel, SCENE_COUNT, STILL_TIME, type Hud } from '../lib/workReel'
+import { ArrowLink } from './Profile'
 
 /*
- * Home header: a looping motion-graphic reel of the work (see lib/workReel.ts), coloured by
- * the time of day in Seattle, with a soft glow behind it that's lit by whatever is on screen.
+ * Home header: a looping motion-graphic reel of the work (see lib/workReel.ts), in black and
+ * white, with a soft glow behind it that's lit by whatever is on screen.
  */
+
+/** The header is black and white: a near-black ground, white linework, one grey between. */
+const HEADER_BG = '#010101'
+const PALETTE: Palette = { lo: [1 / 255, 1 / 255, 1 / 255], mid: [0x7a / 255, 0x7a / 255, 0x7a / 255], hi: [1, 1, 1] }
 
 /** How strong the halo behind the header is. */
 const GLOW_OPACITY = 0.7
@@ -46,17 +51,16 @@ export function HomeHeader() {
   const root = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const glow = useRef<HTMLCanvasElement>(null)
-  const tod = useTimeOfDay()
-  // Read by the render loop every frame; updated whenever the time-of-day palette ticks over.
-  const palette = useRef(tod.palette)
-  palette.current = tod.palette
-  const slugNow = useRef<() => string | undefined>(() => undefined)
+  const cta = useRef<HTMLDivElement>(null)
+  const bar = useRef<HTMLDivElement>(null)
+  // Set once the reel is up: pressing a progress segment jumps to that slide.
+  const jump = useRef<(i: number) => void>(() => {})
 
-  // The reel is a way in: clicking it goes to the case study on screen, or to the list.
-  const goToWork = () => {
-    const slug = slugNow.current()
-    const target =
-      (slug && document.querySelector<HTMLElement>(`.cs[data-slug="${slug}"]`)) || document.querySelector<HTMLElement>('.cs-list')
+  // The call to action under the title scrolls down to the case study list.
+  const goToWork = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    e.preventDefault()
+    const target = document.querySelector<HTMLElement>('.cs-list')
     if (target) scrollToTarget(target)
   }
 
@@ -66,7 +70,6 @@ export function HomeHeader() {
       const cv = canvas.current!
       const reel = createReel(cv)
       if (!reel) return
-      slugNow.current = () => reel.currentSlug(reelClock)
       // Glow: each frame is copied into a tiny canvas behind the header, scaled up and blurred
       // in CSS, so the halo carries the reel's live colours and movement.
       const glowCv = glow.current!
@@ -87,8 +90,26 @@ export function HomeHeader() {
       el.addEventListener('pointermove', onMove)
       el.addEventListener('pointerleave', onLeave)
 
+      // Keep the DOM call to action pinned under the canvas title. It stays put and visible while
+      // the titles hand over.
+      // The progress bar is drawn on the canvas too; its buttons sit over it, one per segment.
+      let shownIdx = -1
+      const place = (hud: Hud | undefined) => {
+        if (!hud) return
+        if (cta.current) gsap.set(cta.current, { x: hud.x, y: hud.y })
+        if (bar.current) {
+          gsap.set(bar.current, { x: hud.bar.x, y: hud.bar.y })
+          if (hud.idx !== shownIdx) {
+            shownIdx = hud.idx
+            Array.from(bar.current.children).forEach((b, i) =>
+              i === shownIdx ? b.setAttribute('aria-current', 'true') : b.removeAttribute('aria-current'),
+            )
+          }
+        }
+      }
+
       const render = () => {
-        reel.draw(reelClock, palette.current, pointer)
+        place(reel.draw(reelClock, PALETTE, pointer))
         if (glowCtx) {
           glowCtx.clearRect(0, 0, glowCv.width, glowCv.height)
           glowCtx.drawImage(cv, 0, 0, glowCv.width, glowCv.height)
@@ -106,11 +127,34 @@ export function HomeHeader() {
       ro.observe(el)
       // Labels are canvas text: redraw once the web font is in.
       document.fonts.ready.then(render)
+      // Project Open's model loads separately; redraw once it's in (matters for the still frame).
+      reel.modelReady?.then(render)
 
       const teardown = () => {
         ro.disconnect()
         el.removeEventListener('pointermove', onMove)
         el.removeEventListener('pointerleave', onLeave)
+      }
+
+      // Dip the art out, then start the chosen slide drawing itself on from nothing, so nothing
+      // is cut off mid-move.
+      jump.current = (i) => {
+        if (reduce) {
+          reelClock = reel.jumpTo(i, reelClock) + STILL_TIME
+          render()
+          return
+        }
+        gsap.to(cv, {
+          opacity: 0,
+          duration: 0.25,
+          ease: 'power2.in',
+          overwrite: true,
+          onComplete: () => {
+            reelClock = reel.jumpTo(i, reelClock) + 0.35
+            render()
+            gsap.to(cv, { opacity: 1, duration: 0.35, ease: 'power2.out' })
+          },
+        })
       }
 
       if (reduce) {
@@ -127,28 +171,35 @@ export function HomeHeader() {
       const io = new IntersectionObserver(([entry]) => (visible = entry.isIntersecting))
       io.observe(el)
 
-      // Background parallax: as the page scrolls, the reel drifts down at a third of the scroll
-      // speed while the case studies slide up over it, and fades out. Once it's gone it stops
-      // drawing; scrolling back up brings it back where it left off.
+      // Background parallax (desktop): as the page scrolls, the reel drifts down at a third of the
+      // scroll speed while the case studies slide up over it, and fades out. Once it's gone it
+      // stops drawing; scrolling back up brings it back where it left off. Phones skip it: there
+      // the name sits in the page flow right under the header, and the drift would cover it.
       const wrap = el.parentElement!
       let faded = false
-      const drift = gsap.fromTo(
-        wrap,
-        { y: 0, opacity: 1 },
-        {
-          y: () => el.offsetHeight * 0.35,
-          opacity: 0,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: wrap,
-            start: 'top top',
-            end: () => `+=${el.offsetHeight * 0.8}`,
-            scrub: true,
-            invalidateOnRefresh: true,
-            onUpdate: (self) => (faded = self.progress > 0.98),
+      const mm = gsap.matchMedia()
+      mm.add('(min-width: 900px)', () => {
+        gsap.fromTo(
+          wrap,
+          { y: 0, opacity: 1 },
+          {
+            y: () => el.offsetHeight * 0.35,
+            opacity: 0,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: wrap,
+              start: 'top top',
+              end: () => `+=${el.offsetHeight * 0.8}`,
+              scrub: true,
+              invalidateOnRefresh: true,
+              onUpdate: (self) => (faded = self.progress > 0.98),
+            },
           },
-        },
-      )
+        )
+        return () => {
+          faded = false
+        }
+      })
 
       const tick = (_time: number, dt: number) => {
         if (!visible || faded) return
@@ -175,12 +226,14 @@ export function HomeHeader() {
             },
           },
         )
-        gsap.fromTo(glowCv, { autoAlpha: 0 }, { autoAlpha: GLOW_OPACITY, duration: 1.6, delay: 0.4, ease: 'power2.out' })
+        // On phones the glow spills behind the name below the header, so it's simply there;
+        // on desktop it fades up with the header.
+        if (window.matchMedia('(max-width: 899px)').matches) gsap.set(glowCv, { autoAlpha: GLOW_OPACITY })
+        else gsap.fromTo(glowCv, { autoAlpha: 0 }, { autoAlpha: GLOW_OPACITY, duration: 1.6, delay: 0.4, ease: 'power2.out' })
       }
 
       return () => {
-        drift.scrollTrigger?.kill()
-        drift.kill()
+        mm.revert()
         gsap.ticker.remove(tick)
         io.disconnect()
         teardown()
@@ -192,22 +245,21 @@ export function HomeHeader() {
   return (
     <div className="hh-wrap">
       <canvas ref={glow} className="hh-glow" aria-hidden="true" />
-      <div
-        ref={root}
-        className="home-header"
-        role="button"
-        tabIndex={0}
-        aria-label="A looping reel of selected work: Xbox Arcade, ForeFlight, Who Owns Seattle and Project Open. Go to the case studies."
-        onClick={goToWork}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            goToWork()
-          }
-        }}
-        style={{ backgroundColor: tod.swatches[0] }}
-      >
-        <canvas ref={canvas} className="hh-field" />
+      <div ref={root} className="home-header" style={{ backgroundColor: HEADER_BG }}>
+        <canvas
+          ref={canvas}
+          className="hh-field"
+          role="img"
+          aria-label="A looping reel of selected work: Project Open, Xbox Arcade, ForeFlight and Who Owns Seattle."
+        />
+        <div ref={cta} className="hh-cta">
+          <ArrowLink href="#work" label="See all work" down onClick={goToWork} />
+        </div>
+        <div ref={bar} className="hh-progress" role="group" aria-label="Slides">
+          {Array.from({ length: SCENE_COUNT }, (_, i) => (
+            <button key={i} type="button" aria-label={`Slide ${i + 1} of ${SCENE_COUNT}`} onClick={() => jump.current(i)} />
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import divider from '../assets/divider.svg'
 import { HomeHeader } from '../components/HomeHeader'
 import { Intro, SidebarFooter, SidebarLinks } from '../components/Profile'
@@ -21,6 +21,7 @@ export function SiteLayout() {
   const root = useRef<HTMLDivElement>(null)
   const main = useRef<HTMLElement>(null)
   const header = useRef<HTMLDivElement>(null)
+  const back = useRef<HTMLDivElement>(null)
   const { pathname, state } = useLocation()
   const navigate = useNavigate()
   const prevPath = useRef(pathname)
@@ -73,6 +74,30 @@ export function SiteLayout() {
     { dependencies: [pathname], scope: root },
   )
 
+  // About gets a Go Back bar at the top of the sidebar. Arriving, a slot opens and the bar drops
+  // into it from above; leaving, it recedes back up into the top as the slot closes.
+  const aboutBack = pathname === '/about'
+  useGSAP(
+    () => {
+      const slot = back.current
+      const bar = slot?.firstElementChild
+      if (!slot || !bar) return
+      const d = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1
+      if (aboutBack) {
+        gsap
+          .timeline()
+          .to(slot, { height: 43, duration: 0.6 * d, ease: 'expo.inOut' })
+          .fromTo(bar, { yPercent: -100, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.9 * d, ease: 'expo.out' }, 0.15 * d)
+      } else if (slot.offsetHeight > 0) {
+        gsap
+          .timeline()
+          .to(bar, { yPercent: -100, autoAlpha: 0, duration: 0.5 * d, ease: 'power2.in' })
+          .to(slot, { height: 0, duration: 0.6 * d, ease: 'expo.inOut' }, 0.1 * d)
+      }
+    },
+    { dependencies: [aboutBack], scope: root },
+  )
+
   const go = async (e: React.MouseEvent, to: string) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
     e.preventDefault()
@@ -92,6 +117,17 @@ export function SiteLayout() {
       )}
       <aside className="sidebar sidebar--home">
         <div className="sidebar-top">
+          <div ref={back} className="site-back">
+            <Link
+              to="/"
+              className="study-back"
+              onClick={(e) => go(e, '/')}
+              tabIndex={aboutBack ? undefined : -1}
+              aria-hidden={aboutBack ? undefined : true}
+            >
+              ← Go Back
+            </Link>
+          </div>
           <Intro />
           <SidebarLinks />
           <nav className="site-nav" aria-label="Primary">

@@ -175,7 +175,7 @@ export function Resume() {
           </ul>
         </nav>
 
-        <Link to={from} className="study-back intro-fade" onClick={goBack}>
+        <Link to={from} className="study-back back-drop" onClick={goBack}>
           ← Go Back
         </Link>
       </aside>
