@@ -4,7 +4,7 @@ import { SiteLayout } from './layouts/SiteLayout'
 import { About } from './pages/About'
 import { CaseStudyPage } from './pages/CaseStudyPage'
 import { Home } from './pages/Home'
-import { Play } from './pages/Play'
+import { Films } from './pages/Films'
 import { Resume } from './pages/Resume'
 import { ScrollTrigger } from './lib/gsap'
 import { useRouteScroll } from './lib/useRouteScroll'
@@ -23,7 +23,7 @@ export default function App() {
     <Routes>
       <Route element={<SiteLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/play" element={<Play />} />
+        <Route path="/films" element={<Films />} />
         <Route path="/about" element={<About />} />
       </Route>
       {/* Same URLs as the live kaelub.com: /case-study/<slug> and /recruiter. */}
@@ -31,6 +31,7 @@ export default function App() {
       <Route path="/recruiter" element={<Resume />} />
       {/* Paths this site used before, kept working. */}
       <Route path="/work/:slug" element={<LegacyCaseStudy />} />
+      <Route path="/play" element={<Navigate to="/films" replace />} />
       <Route path="/resume" element={<Navigate to="/recruiter" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

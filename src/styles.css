@@ -296,7 +296,7 @@ a {
   padding: 25px 27px 25vh 31px;
 }
 
-/* Work/Play/About shell: the sidebar spans both rows; the header (Work only) takes the top of
+/* Work/Films/About shell: the sidebar spans both rows; the header (Work only) takes the top of
    the right column and the page content sits under it. */
 .layout-site {
   grid-template-rows: auto 1fr;
@@ -385,34 +385,51 @@ a {
   opacity: 1;
 }
 
-/* ---------- Play ---------- */
+/* ---------- Films ---------- */
 
-.play {
-  columns: 2;
-  column-gap: var(--row-gap);
-}
-
-.play-item {
+.films-intro {
+  max-width: 52ch;
   margin: 0 0 40px;
-  break-inside: avoid;
+  font-size: 15px;
+  line-height: 24px;
 }
 
-.play-media--tall {
-  aspect-ratio: 3 / 4;
+.films {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px var(--row-gap);
 }
 
-.play-media--wide {
-  aspect-ratio: 4 / 3;
+.film {
+  margin: 0;
 }
 
-.play-caption {
-  display: flex;
-  gap: 18px;
+.film-media,
+.film-embed {
+  aspect-ratio: 16 / 9;
+}
+
+.film-embed {
+  position: relative;
+  background: var(--media);
+}
+
+.film-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.film-caption {
+  display: grid;
+  gap: 4px;
   padding-top: 10px;
   color: var(--ink-muted);
 }
 
-.play-caption span:first-child {
+.film-title {
   color: var(--ink);
 }
 
@@ -710,7 +727,7 @@ a {
   outline-offset: 4px;
 }
 
-/* Condensed studies after the full-size rows: a two-column grid in the Play page's format. */
+/* Condensed studies after the full-size rows: a two-column grid in the Films page's format. */
 .cs-more {
   margin-top: 72px;
   padding-top: 24px;
@@ -1450,7 +1467,7 @@ a {
     padding: 16px 16px 48px;
   }
 
-  /* Work / Play / About on phones: flatten the sidebar so the location + links
+  /* Work / Films / About on phones: flatten the sidebar so the location + links
      card can drop below the content and act as the page footer. */
   .layout-site {
     display: flex;
@@ -1603,8 +1620,8 @@ a {
     aspect-ratio: 4 / 3;
   }
 
-  .play {
-    columns: 1;
+  .films {
+    grid-template-columns: 1fr;
   }
 
   .cs-more {

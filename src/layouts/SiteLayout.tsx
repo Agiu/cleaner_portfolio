@@ -9,12 +9,12 @@ import { useIntro } from '../lib/useIntro'
 
 const NAV = [
   { to: '/', label: 'Work' },
-  { to: '/play', label: 'Play' },
+  { to: '/films', label: 'Films' },
   { to: '/about', label: 'About' },
 ]
 
 /**
- * Shared shell for Work, Play and About: the sidebar stays put while only the
+ * Shared shell for Work, Films and About: the sidebar stays put while only the
  * right-hand content cross-fades between pages.
  */
 export function SiteLayout() {

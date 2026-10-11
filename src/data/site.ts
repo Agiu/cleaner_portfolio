@@ -1,24 +1,28 @@
-// Placeholder content for the Play and About pages — swap in real work and copy.
-// Play imagery reuses the dummy shots borrowed from uwdesignshow.com (public/dummy).
+// Films, mirroring kaelub.com/films. Thumbnails and playback come from YouTube.
 
-export type PlayItem = {
+export type Film = {
   title: string
-  medium: string
-  year: string
-  image: string
-  /** Frame shape in the grid. */
-  shape: 'tall' | 'wide'
+  category: string
+  year?: string
+  description: string
+  youtubeId: string
 }
 
-export const playItems: PlayItem[] = [
-  { title: 'Experiment 01', medium: 'Motion study', year: '2026', image: '/dummy/everwarm/vertical-1.jpg', shape: 'tall' },
-  { title: 'Experiment 02', medium: 'Creative code', year: '2026', image: '/dummy/harbor/detail-2.jpg', shape: 'wide' },
-  { title: 'Experiment 03', medium: 'Short film', year: '2025', image: '/dummy/calyx/detail-3.jpg', shape: 'wide' },
-  { title: 'Experiment 04', medium: 'Type study', year: '2025', image: '/dummy/aspi/vertical-1.jpg', shape: 'tall' },
-  { title: 'Experiment 05', medium: 'Motion study', year: '2025', image: '/dummy/everwarm/detail-3.jpg', shape: 'wide' },
-  { title: 'Experiment 06', medium: 'Creative code', year: '2024', image: '/dummy/calyx/vertical-1.jpg', shape: 'tall' },
-  { title: 'Experiment 07', medium: 'Short film', year: '2024', image: '/dummy/harbor/detail-4.jpg', shape: 'wide' },
-  { title: 'Experiment 08', medium: 'Type study', year: '2024', image: '/dummy/aspi/detail-3.jpg', shape: 'wide' },
+export const filmsIntro =
+  'A collection of videography, 3D motion, and short films I’ve fully produced, exploring visual storytelling outside of traditional product design.'
+
+export const films: Film[] = [
+  { title: 'Caleb Aguiar: Demo Reel', category: 'Demo Reel', description: 'A showcase of my videography, editing, and motion design work.', youtubeId: 'iBr7-u9myAw' },
+  { title: 'Advanced Interfaces Lab w/ Chris Seifert | MHCI+D Course Overview', category: 'Documentary', description: 'A course overview video for the Advanced Interfaces Lab in UW’s MHCI+D program.', youtubeId: 'JZpwuotClQ0' },
+  { title: 'MHCI+D Studio Tour in Motion', category: 'Documentary', description: 'A motion tour of the MHCI+D studio space at UW.', youtubeId: 'eBoFxr2qnhQ' },
+  { title: 'XBOX Arcade: Discover and Play Instantly', category: 'Product Design', description: 'A product pitch for XBOX Arcade, a cloud gaming concept built around instant matchmaking and game discovery.', youtubeId: 'oO-0QA1BzfQ' },
+  { title: 'Headphones of the Future: Project Open', category: 'Product Design', description: 'A concept video exploring the interaction and design of bandless headphones.', youtubeId: '2mzSQccg3mY' },
+  { title: 'Bid Day 2024!', category: 'Event Videography', year: '2024', description: 'A high-energy recap capturing the excitement of Bid Day 2024.', youtubeId: '0EFLRxWz0xE' },
+  { title: 'Jekyllyde', category: 'Short Film', description: 'A short film project exploring lighting, narrative pacing, and duality.', youtubeId: 'OY9rGIfXh1I' },
+  { title: 'An Introduction and my path — Live Mas Scholarship Video', category: 'Documentary', description: 'A personal documentary detailing my journey and passions.', youtubeId: 'KjhYBqqyhSk' },
+  { title: 'Ethan Brown ’25 | Major Declaration Day', category: 'Documentary', description: 'Capturing a pivotal moment for a student’s academic journey.', youtubeId: 'WphwNnOQC7s' },
+  { title: 'Winter 2023 Commencement Recap', category: 'Event Videography', year: '2023', description: 'A cinematic recap of the Winter 2023 graduation ceremonies.', youtubeId: 'lehaYhcnj10' },
+  { title: 'HLA Short Film: TOUR (S2FM)', category: 'Short Film · Animation', description: 'A short film produced entirely within the Source 2 engine.', youtubeId: 'J305VXJf5eU' },
 ]
 
 export const about = {
