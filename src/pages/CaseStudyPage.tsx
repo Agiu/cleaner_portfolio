@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import divider from '../assets/divider.svg'
+import { AudioTracks } from '../components/AudioTracks'
+import { CodeBlock } from '../components/CodeBlock'
 import { MediaBlock } from '../components/MediaBlock'
 import { findCaseStudy, type Advisor, type CaseStudy, type CaseStudySection } from '../data/caseStudies'
 import type { SectionBlock } from '../lib/caseStudyMarkdown'
@@ -27,7 +29,22 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
   const backTo = navState?.from ?? '/'
   useIntro(root)
 
-  useLayoutEffect(() => finishExpand(), [])
+  // Hold the expanded overlay (which may be showing the card's playing video) until the hero's
+  // video is running underneath it, so the handover doesn't flash back to the still.
+  useLayoutEffect(() => {
+    const v = root.current?.querySelector<HTMLVideoElement>('.study-hero video')
+    if (!v || !v.paused) return finishExpand()
+    const done = () => {
+      clearTimeout(timer)
+      finishExpand()
+    }
+    const timer = setTimeout(done, 1500)
+    v.addEventListener('playing', done, { once: true })
+    return () => {
+      clearTimeout(timer)
+      v.removeEventListener('playing', done)
+    }
+  }, [])
 
   useGSAP(
     () => {
@@ -104,8 +121,10 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
         <div className="study-swap">
           <div className="study-details" data-lenis-prevent>
             {study.outcomes.length > 0 && <DetailGroup title="Outcomes" items={study.outcomes} spacious />}
-            {study.team.length > 0 && <DetailGroup title="Team Members" items={study.team} />}
-            {study.advisors.length > 0 && <AdvisorGroup advisors={study.advisors} />}
+            {study.team.length > 0 && (
+              <PeopleGroup title="Team Members" people={study.team.map((p) => (typeof p === 'string' ? { name: p } : p))} />
+            )}
+            {study.advisors.length > 0 && <PeopleGroup title="Advisors" people={study.advisors} />}
           </div>
 
           <nav className="study-nav" aria-label="Case study sections">
@@ -136,7 +155,20 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
       </aside>
 
       <main className="study-main">
-        <MediaBlock className="study-hero" src={study.image} video={study.video} withFloat skipReveal={expanded} />
+        <MediaBlock className="study-hero" src={study.image} video={study.video} videoStart={study.videoStart} withFloat skipReveal={expanded}>
+          {study.videoCredit && (
+            <p className="media-credit">
+              {/* Stacked copies, each blending over the last: strip the colour from the video behind,
+                  snap it to black or white, then invert it. Only the last copy is read out. */}
+              {['mono', 'burn', 'dodge'].map((layer) => (
+                <span key={layer} className={`media-credit-${layer}`} aria-hidden="true">
+                  {study.videoCredit}
+                </span>
+              ))}
+              <span className="media-credit-invert">{study.videoCredit}</span>
+            </p>
+          )}
+        </MediaBlock>
         {study.sections.map((section) => (
           <Section key={section.id} section={section} />
         ))}
@@ -145,13 +177,13 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
   )
 }
 
-/** Advisors: name (linked to LinkedIn when there's a URL), job title small and grey beneath. */
-function AdvisorGroup({ advisors }: { advisors: Advisor[] }) {
+/** Team members and advisors: name (linked to LinkedIn when there's a URL), job title small and grey beneath. */
+function PeopleGroup({ title, people }: { title: string; people: Advisor[] }) {
   return (
     <div className="study-group">
-      <h2 className="study-group-title intro-fade">Advisors</h2>
+      <h2 className="study-group-title intro-fade">{title}</h2>
       <ul className="study-list study-list--people intro-fade">
-        {advisors.map((a) => (
+        {people.map((a) => (
           <li key={a.name}>
             {a.linkedin ? (
               <a className="study-person-link" href={a.linkedin} target="_blank" rel="noreferrer">
@@ -186,20 +218,54 @@ function DetailGroup({ title, items, spacious = false }: { title: string; items:
  * each image row breaks out full width between them, so text and images can alternate.
  */
 function Section({ section }: { section: CaseStudySection }) {
-  // Split the blocks into alternating runs: consecutive text blocks, or one media row.
+  // Split the blocks into alternating runs: consecutive text blocks, or one media/video row.
+  // A "side" image starts a text run of its own and sits in its left column.
+  const isRow = (block: SectionBlock) => (block.kind === 'media' && !block.side) || block.kind === 'video'
+  const isSide = (block: SectionBlock) => block.kind === 'media' && block.side
   const runs: SectionBlock[][] = []
   for (const block of section.blocks) {
     const last = runs[runs.length - 1]
-    if (block.kind !== 'media' && last && last[0].kind !== 'media') last.push(block)
+    if (!isRow(block) && !isSide(block) && last && !isRow(last[0])) last.push(block)
     else runs.push([block])
   }
   // A section that opens on images still gets its heading first.
-  if (!runs.length || runs[0][0].kind === 'media') runs.unshift([])
+  if (!runs.length || isRow(runs[0][0])) runs.unshift([])
 
   return (
     <section id={section.id} className="study-section">
       {runs.map((run, i) => {
         const first = run[0]
+        if (first?.kind === 'video') {
+          return (
+            <div key={i} className="study-media" data-count={1}>
+              <div className="study-video">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${first.youtube}?rel=0`}
+                  title="YouTube video"
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          )
+        }
+        if (first?.kind === 'media' && first.side) {
+          return (
+            <div key={i} className={`study-section-text study-section-text--side${i > 0 ? ' study-section-text--more' : ''}`}>
+              <div className="study-side-media" style={first.aspect ? ({ '--aspect': first.aspect } as React.CSSProperties) : undefined}>
+                {first.images.map((img, j) => (
+                  <MediaBlock key={j} src={img.src} alt={img.alt} still={first.still} />
+                ))}
+              </div>
+              <div className="study-section-copy">
+                {run.slice(1).map((block, j) => (
+                  <TextBlock key={j} block={block} />
+                ))}
+              </div>
+            </div>
+          )
+        }
         if (first?.kind === 'media') {
           return (
             <div
@@ -239,6 +305,10 @@ function TextBlock({ block }: { block: SectionBlock }) {
       return <div className="study-section-list" dangerouslySetInnerHTML={{ __html: block.html }} />
     case 'paragraph':
       return <p dangerouslySetInnerHTML={{ __html: block.html }} />
+    case 'code':
+      return <CodeBlock text={block.text} lang={block.lang} file={block.file} />
+    case 'audio':
+      return <AudioTracks tracks={block.tracks} />
     default:
       return null
   }

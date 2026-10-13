@@ -24,6 +24,14 @@ export function expandToHero(media: HTMLElement, pageRoot: HTMLElement | null): 
   clone.removeAttribute('style') // drop reveal clip-path/opacity; the overlay handles its own shape
   overlay.appendChild(clone)
   document.body.appendChild(overlay)
+  // A hover-playing video moves into the overlay as-is (a copy would restart from black), and
+  // keeps playing as it grows.
+  const live = media.querySelector('video')
+  const copy = clone.querySelector('video')
+  if (live && copy) {
+    copy.replaceWith(live)
+    live.play().catch(() => {})
+  }
 
   gsap.set(overlay, { left: rect.left, top: rect.top, width: rect.width, height: rect.height })
   gsap.set(media, { autoAlpha: 0 }) // the overlay stands in for it

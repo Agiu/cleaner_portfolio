@@ -1,7 +1,8 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { CaseStudy as CaseStudyData } from '../data/caseStudies'
 import { hasRevealed, markRevealed } from '../lib/revealed'
+import { restoreVideoTime, saveVideoTime } from '../lib/videoTime'
 import { gsap, useGSAP } from '../lib/gsap'
 import { canExpand, expandToHero } from '../lib/pageTransition'
 
@@ -21,6 +22,16 @@ type Props = {
  */
 export function CaseStudy({ study, settled = false }: Props) {
   const root = useRef<HTMLElement>(null)
+  const video = useRef<HTMLVideoElement>(null)
+  // A study with a video plays it while the row is hovered; the expand carries it into the hero.
+  const [playing, setPlaying] = useState(false)
+  const hoverVideo = (on: boolean) => {
+    const v = video.current
+    if (!v || !window.matchMedia('(hover: hover)').matches) return
+    if (on) v.play().catch(() => {})
+    else v.pause()
+    setPlaying(on)
+  }
   const navigate = useNavigate()
   const to = `/case-study/${study.slug}`
 
@@ -159,12 +170,34 @@ export function CaseStudy({ study, settled = false }: Props) {
       data-side={study.mediaSide}
       style={{ '--media': study.mediaRatio } as React.CSSProperties}
     >
-      <Link className="cs-inner" to={to} onClick={onClick}>
+      <Link
+        className="cs-inner"
+        to={to}
+        onClick={onClick}
+        onMouseEnter={() => hoverVideo(true)}
+        onMouseLeave={() => hoverVideo(false)}
+      >
         <div className="cs-media">
           <div className="cs-hover">
             <div className="cs-media-scale">
               <div className="cs-parallax">
                 {study.image ? <img src={study.image} alt="" /> : <div className="cs-placeholder" />}
+                {study.video && (
+                  <video
+                    ref={video}
+                    className={`media-video${playing ? ' is-started' : ''}`}
+                    src={study.video}
+                    data-start={study.videoStart}
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    disablePictureInPicture
+                    aria-hidden="true"
+                    onLoadedMetadata={(e) => restoreVideoTime(e.currentTarget)}
+                    onTimeUpdate={(e) => saveVideoTime(e.currentTarget)}
+                  />
+                )}
               </div>
             </div>
           </div>

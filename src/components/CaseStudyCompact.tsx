@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { CaseStudy as CaseStudyData } from '../data/caseStudies'
 import { fadeOutPage } from '../lib/pageTransition'
@@ -6,10 +7,13 @@ import { MediaBlock } from './MediaBlock'
 /**
  * Condensed case study card, used once the list runs past the full-size rows: the image
  * (same scan reveal as every MediaBlock) with the full rows' meta, title and summary laid over it.
- * Opens with the ordinary page fade rather than the expand-to-hero transition.
+ * Opens with the ordinary page fade rather than the expand-to-hero transition. A study with a
+ * video plays it on hover.
  */
 export function CaseStudyCompact({ study }: { study: CaseStudyData }) {
   const navigate = useNavigate()
+  // The video plays while the card is hovered and keeps going through the click into the hero.
+  const [hovered, setHovered] = useState(false)
   const to = `/case-study/${study.slug}`
 
   const onClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -21,8 +25,14 @@ export function CaseStudyCompact({ study }: { study: CaseStudyData }) {
 
   return (
     <article className="cs-compact">
-      <Link to={to} className="cs-compact-link" onClick={onClick}>
-        <MediaBlock src={study.image} className="cs-compact-media">
+      <Link
+        to={to}
+        className="cs-compact-link"
+        onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <MediaBlock src={study.image} video={study.video} videoStart={study.videoStart} play={hovered} className="cs-compact-media">
           {/* Laid out like the full rows' panel: meta up top, title and summary at the foot.
               On hover devices only the title shows until hover (see .cs-compact-info). */}
           <div className="cs-compact-info">

@@ -122,7 +122,8 @@ export const positions: Position[] = [
       {
         headline: 'Building Who Owns Seattle, a property-ownership data visualizer',
         detail:
-          'Traces how downtown Seattle changed hands over time using King County’s public records; still being created.',
+          'Traces how downtown Seattle changed hands over time using King County’s public records; now a working prototype.',
+        links: [{ label: 'Read case study', href: '/case-study/wos' }],
       },
       {
         headline: 'Designed and led Project Open: open-back headphones for urban use',

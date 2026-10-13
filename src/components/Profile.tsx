@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import arrowDown from '../assets/arrow-down.svg'
 import arrowNe from '../assets/arrow-ne.svg'
 import linkRule from '../assets/link-rule.svg'
@@ -8,11 +8,93 @@ import { gsap, useGSAP } from '../lib/gsap'
 import { fadeOutPage } from '../lib/pageTransition'
 import { useTimeOfDay } from '../lib/timeOfDay'
 
-export function Intro() {
+/** Dot grid spacing and pointer-light radius for the name's hover (the header's grid uses 22 / 150). */
+const DOT_GAP = 14
+const DOT_REACH = 90
+
+/**
+ * Name, bio and status. The name links home; on hover a dot grid behind it lights up around the
+ * pointer, the header's grid inverted to black dots on the white page.
+ */
+export function Intro({ onHome }: { onHome?: (e: React.MouseEvent<HTMLAnchorElement>) => void }) {
+  const wrap = useRef<HTMLHeadingElement>(null)
+  const dots = useRef<HTMLCanvasElement>(null)
+  // Pointer target, the eased position the light actually sits at, and how lit the grid is.
+  const light = useRef({ tx: 0, ty: 0, x: 0, y: 0, on: 0, live: false })
+
+  const { contextSafe } = useGSAP(
+    () => {
+      const cv = dots.current!
+      const ctx = cv.getContext('2d')
+      if (!ctx) return
+      const s = light.current
+      const draw = () => {
+        if (!s.live) return
+        const w = cv.clientWidth, h = cv.clientHeight
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+        if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+          cv.width = Math.round(w * dpr)
+          cv.height = Math.round(h * dpr)
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+        ctx.clearRect(0, 0, w, h)
+        // The light trails the pointer a little, like the header's.
+        s.x += (s.tx - s.x) * 0.25
+        s.y += (s.ty - s.y) * 0.25
+        ctx.fillStyle = getComputedStyle(cv).color
+        for (let y = DOT_GAP / 2; y < h; y += DOT_GAP) {
+          for (let x = DOT_GAP / 2; x < w; x += DOT_GAP) {
+            const d = Math.hypot(x - s.x, y - s.y)
+            const a = s.on * (0.06 + 0.45 * Math.max(0, 1 - d / DOT_REACH))
+            if (a < 0.01) continue
+            ctx.globalAlpha = a
+            ctx.fillRect(x, y, 1, 1)
+          }
+        }
+        if (s.on <= 0.001) s.live = false
+      }
+      gsap.ticker.add(draw)
+      return () => gsap.ticker.remove(draw)
+    },
+    { scope: wrap },
+  )
+
+  const move = (e: React.PointerEvent) => {
+    const r = dots.current!.getBoundingClientRect()
+    const s = light.current
+    s.tx = e.clientX - r.left
+    s.ty = e.clientY - r.top
+  }
+  const enter = contextSafe((e: React.PointerEvent) => {
+    if (!window.matchMedia('(hover: hover)').matches) return
+    const s = light.current
+    move(e)
+    if (!s.live) {
+      s.x = s.tx
+      s.y = s.ty
+    }
+    s.live = true
+    gsap.to(s, { on: 1, duration: 0.4, ease: 'power2.out', overwrite: true })
+  })
+  const leave = contextSafe(() => {
+    gsap.to(light.current, { on: 0, duration: 0.6, ease: 'power2.out', overwrite: true })
+  })
+
   return (
     <div className="intro">
-      <h1 className="intro-name" data-split>
-        {profile.name}
+      <h1 ref={wrap} className="intro-name">
+        <canvas ref={dots} className="intro-name-dots" aria-hidden="true" />
+        <Link
+          to="/"
+          className="intro-name-link"
+          data-split
+          onClick={onHome}
+          onPointerEnter={enter}
+          onPointerMove={move}
+          onPointerLeave={leave}
+        >
+          {profile.name}
+        </Link>
       </h1>
       <div className="intro-bio">
         <p className="intro-lead" data-split>

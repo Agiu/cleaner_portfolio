@@ -33,6 +33,9 @@ export default function App() {
       <Route path="/work/:slug" element={<LegacyCaseStudy />} />
       <Route path="/play" element={<Navigate to="/films" replace />} />
       <Route path="/resume" element={<Navigate to="/recruiter" replace />} />
+      {/* Who Owns Seattle is a separate prebuilt app in public/who, served at /who/. */}
+      <Route path="/who" element={<LeaveForPublicApp to="/who/" />} />
+      <Route path="/who/explore" element={<LeaveForPublicApp to="/who/explore/" />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -44,4 +47,10 @@ const RENAMED_SLUGS: Record<string, string> = { 'xbox-arcade': 'xbox' }
 function LegacyCaseStudy() {
   const { slug = '' } = useParams()
   return <Navigate to={`/case-study/${RENAMED_SLUGS[slug] ?? slug}`} replace />
+}
+
+/** Full page load into a prebuilt app in public/, which this router can't render. */
+function LeaveForPublicApp({ to }: { to: string }) {
+  useEffect(() => window.location.replace(to), [to])
+  return null
 }

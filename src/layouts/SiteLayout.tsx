@@ -128,7 +128,7 @@ export function SiteLayout() {
               ← Go Back
             </Link>
           </div>
-          <Intro />
+          <Intro onHome={(e) => go(e, '/')} />
           <SidebarLinks />
           <nav className="site-nav" aria-label="Primary">
             <ul>

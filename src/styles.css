@@ -90,11 +90,38 @@ a {
 /* Hierarchy: name 36 black-weight / lead 16 grey / status 13 / links + nav 13 / footer 10. */
 
 .intro-name {
-  width: min-content; /* one word per line */
+  position: relative;
   font-size: 36px;
   line-height: 34px;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+/* Hover dot grid: spills past the name (out to the sidebar's right edge, past the intro's
+   right padding) and fades out on all four sides. */
+.intro-name-dots {
+  --fade: 28px;
+  position: absolute;
+  top: -20px;
+  bottom: -20px;
+  left: -20px;
+  right: -29px;
+  width: calc(100% + 49px);
+  height: calc(100% + 40px);
+  pointer-events: none;
+  color: #000;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent),
+    linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent),
+    linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+  mask-composite: intersect;
+}
+
+.intro-name-link {
+  position: relative;
+  display: block;
+  width: min-content; /* one word per line */
 }
 
 .intro-bio {
@@ -755,11 +782,13 @@ a {
   aspect-ratio: 16 / 10;
 }
 
-.cs-compact-media img {
+.cs-compact-media img,
+.cs-compact-media video {
   transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.cs-compact-link:hover .cs-compact-media img {
+.cs-compact-link:hover .cs-compact-media img,
+.cs-compact-link:hover .cs-compact-media video {
   transform: scale(1.045);
 }
 
@@ -1053,24 +1082,12 @@ a {
   transition: opacity 0.6s ease;
 }
 
-/* Stays visible once started, so pausing holds the frame instead of snapping back to the poster. */
+/* Shown while playing; when a hovered card's video stops, it fades back to the still. */
 .media-video.is-started {
   opacity: 1;
 }
 
-/* Paused frame, drawn from the video on pause and shown above it until playback resumes. */
-.media-frame {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  visibility: hidden;
-}
-
-.media-frame.is-shown {
-  visibility: visible;
-}
-
+/* Play button (Films thumbnails). */
 .media-play {
   position: absolute;
   right: 16px;
@@ -1101,6 +1118,51 @@ a {
   width: 14px;
   height: 14px;
   fill: currentColor;
+}
+
+/* Credit for a hero video made by someone else, in the corner the play button used to hold.
+   No background: the glyphs show the video behind them inverted and in greyscale. The wrapper
+   takes no z-index, since a stacking context there would cut the blends off from the video. */
+.media-credit {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  font-size: 20px; /* matches the case study title in the sidebar (.study-title) */
+  line-height: 24px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.media-credit > span {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 2;
+}
+
+/* 1. Grey has zero saturation: takes the colour out of whatever is behind the letters. */
+.media-credit-mono {
+  color: #808080;
+  mix-blend-mode: saturation;
+}
+
+/* 2-3. Threshold: burn with mid-grey sends everything darker than 50% to black (and stretches
+   the rest), then a near-white dodge blows that out to white. Only shades within a few percent
+   of 50% stay grey; raise the dodge colour toward #fff to narrow that band further. */
+.media-credit-burn {
+  color: #808080;
+  mix-blend-mode: color-burn;
+}
+
+.media-credit-dodge {
+  color: #f2f2f2;
+  mix-blend-mode: color-dodge;
+}
+
+/* 4. White differenced over the black-and-white result inverts it. */
+.media-credit-invert {
+  color: #fff;
+  mix-blend-mode: difference;
 }
 
 .media-float-card {
@@ -1140,6 +1202,18 @@ a {
   max-width: 60ch;
   font-size: 15px;
   line-height: 24px;
+}
+
+/* A "side" image: in the left column, level with the text beside it, at its own proportions.
+   It stays in view while long code beside it scrolls past. */
+.study-side-media {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+
+.study-side-media .media {
+  aspect-ratio: var(--aspect, 4 / 5);
 }
 
 /* Text that continues after an image row within the same section: less air above it. */
@@ -1199,6 +1273,196 @@ a {
 
 .study-media[data-count='2'] .media {
   aspect-ratio: var(--aspect, 4 / 3);
+}
+
+/* YouTube embeds (```youtube in the Markdown) sit in the same full-width rows as images. */
+.study-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--media);
+}
+
+.study-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Code listing: a header bar (file, language, copy) over numbered lines, in the panel grey
+   with monochrome highlighting. Wider than the 60ch copy so code rarely needs to scroll. */
+.code-block {
+  max-width: 100%;
+  margin: 10px 0 4px;
+  background: var(--panel);
+}
+
+.code-block-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 0 16px;
+  height: 40px;
+  border-bottom: 1px solid var(--media);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.code-block-file {
+  font-weight: 500;
+}
+
+.code-block-lang {
+  color: var(--ink-muted);
+}
+
+.code-block-copy {
+  margin-left: auto;
+  padding: 4px 8px;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.code-block-copy:hover,
+.code-block-copy:focus-visible {
+  color: var(--ink);
+}
+
+.code-block-body {
+  max-height: 440px;
+  margin: 0;
+  overflow: auto;
+  padding: 14px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 20px;
+  color: #3d3d3d;
+  white-space: pre;
+}
+
+.code-line {
+  display: block;
+  padding-right: 20px;
+}
+
+.code-ln {
+  display: inline-block;
+  width: 44px;
+  padding-right: 16px;
+  text-align: right;
+  color: #b0b0b0;
+  user-select: none;
+}
+
+.code-kw {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.code-type {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.code-str,
+.code-num {
+  color: var(--ink-muted);
+}
+
+.code-com {
+  color: #a3a3a3;
+  font-style: italic;
+}
+
+/* Audio track list: numbered rows, each a play square (the hero video's button, smaller),
+   title and time, with the rule beneath as a scrubber. */
+.audio-tracks {
+  display: flex;
+  flex-direction: column;
+  max-width: 60ch;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.audio-track {
+  display: grid;
+  grid-template-columns: 32px 24px 1fr auto;
+  align-items: center;
+  column-gap: 12px;
+  padding: 12px 0 0;
+}
+
+.audio-track-play {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: var(--ink);
+  color: var(--bg);
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.audio-track-play:hover {
+  transform: scale(1.08);
+}
+
+.audio-track-play svg {
+  width: 11px;
+  height: 11px;
+  fill: currentColor;
+}
+
+.audio-track-index,
+.audio-track-time {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.audio-track-title {
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+.audio-track-rule {
+  grid-column: 1 / -1;
+  position: relative;
+  height: 13px; /* a comfortable hit area around the 1px rule */
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.audio-track-rule::before,
+.audio-track-rule span {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 6px;
+  height: 1px;
+  background: var(--media);
+}
+
+.audio-track-rule span {
+  height: 2px;
+  top: 5.5px;
+  background: var(--ink);
+  transform-origin: 0 50%;
+}
+
+.audio-track-rule:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 /* ---------- Recruiter page (/recruiter) ---------- */
@@ -1501,6 +1765,12 @@ a {
     padding-top: 36px;
   }
 
+  .intro-name-dots {
+    left: -16px;
+    right: -16px;
+    width: calc(100% + 32px);
+  }
+
   .cs-inner,
   .cs[data-side='right'] .cs-inner {
     grid-template-columns: 1fr;
@@ -1575,6 +1845,12 @@ a {
 
   .study-section-text--more > span:first-child {
     display: none;
+  }
+
+  /* Stacked above its text on phones, so it scrolls normally. */
+  .study-side-media {
+    position: static;
+    margin-bottom: 16px;
   }
 
   .resume-nav {

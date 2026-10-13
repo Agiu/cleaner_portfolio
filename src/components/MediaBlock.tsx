@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { gsap, useGSAP } from '../lib/gsap'
 import { hasRevealed, markRevealed } from '../lib/revealed'
+import { restoreVideoTime, saveVideoTime } from '../lib/videoTime'
 
 type Props = {
   src?: string
@@ -13,8 +14,13 @@ type Props = {
   skipReveal?: boolean
   /** No parallax and no overscan crop — for diagrams and UI shots that must show edge to edge. */
   still?: boolean
-  /** Optional muted video; a play/pause button in the bottom-right corner fades it in over the image. */
+  /** Optional muted, looping video that fades in over the image while it plays. */
   video?: string
+  /** Seconds into the video to start from (where the cover still was taken). */
+  videoStart?: number
+  /** Whether the video should be playing (e.g. while its card is hovered). Defaults to always,
+   *  unless the viewer prefers reduced motion. It only actually plays while on screen. */
+  play?: boolean
   /** Overlay content inside the frame (e.g. a caption), revealed along with the image. */
   children?: ReactNode
 }
@@ -24,48 +30,29 @@ type Props = {
  * parallax while it passes through the viewport, plus a one-shot clip/scale
  * reveal when it enters.
  */
-export function MediaBlock({ src, alt = '', className = '', withFloat = false, skipReveal = false, still = false, video, children }: Props) {
+export function MediaBlock({ src, alt = '', className = '', withFloat = false, skipReveal = false, still = false, video, videoStart, play, children }: Props) {
   const root = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [playing, setPlaying] = useState(false)
-  const [started, setStarted] = useState(false)
-  // What the viewer asked for, separate from whether it's playing (we pause it while offscreen).
-  const wantsPlay = useRef(false)
+  const [showing, setShowing] = useState(false)
+  const inView = useRef(false)
+  const wants = play ?? !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const wantsRef = useRef(wants)
+  wantsRef.current = wants
 
-  const frameRef = useRef<HTMLCanvasElement>(null)
-
-  // Freeze the current frame onto a canvas (object-fit: cover math) so a paused video
-  // never falls back to the poster image, whatever the browser does with the paused layer.
-  const freezeFrame = () => {
-    const v = videoRef.current
-    const c = frameRef.current
-    if (!v || !c || !v.videoWidth) return
-    const w = c.clientWidth
-    const h = c.clientHeight
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
-    c.width = Math.round(w * dpr)
-    c.height = Math.round(h * dpr)
-    const scale = Math.max(w / v.videoWidth, h / v.videoHeight)
-    const sw = w / scale
-    const sh = h / scale
-    c.getContext('2d')?.drawImage(v, (v.videoWidth - sw) / 2, (v.videoHeight - sh) / 2, sw, sh, 0, 0, c.width, c.height)
-  }
-
-  const toggleVideo = () => {
+  const sync = () => {
     const v = videoRef.current
     if (!v) return
-    wantsPlay.current = v.paused
-    if (v.paused) v.play().catch(() => {})
+    if (wantsRef.current && inView.current) v.play().catch(() => {})
     else v.pause()
   }
+  useEffect(sync, [wants])
 
-  // Pause while scrolled out of view; resume on return if the viewer had it playing.
+  // Play only while on screen.
   useEffect(() => {
-    const v = videoRef.current
-    if (!v || !root.current) return
+    if (!video || !root.current) return
     const io = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) v.pause()
-      else if (wantsPlay.current) v.play().catch(() => {})
+      inView.current = entry.isIntersecting
+      sync()
     })
     io.observe(root.current)
     return () => io.disconnect()
@@ -126,41 +113,22 @@ export function MediaBlock({ src, alt = '', className = '', withFloat = false, s
           {video && (
             <video
               ref={videoRef}
-              className={`media-video${started ? ' is-started' : ''}`}
+              className={`media-video${showing && wants ? ' is-started' : ''}`}
               src={video}
+              data-start={videoStart}
               muted
               loop
               playsInline
               preload="metadata"
               disablePictureInPicture
               aria-hidden="true"
-              onPlaying={() => {
-                setStarted(true)
-                setPlaying(true)
-              }}
-              onPause={() => {
-                freezeFrame()
-                setPlaying(false)
-              }}
+              onLoadedMetadata={(e) => restoreVideoTime(e.currentTarget)}
+              onPlaying={() => setShowing(true)}
+              onTimeUpdate={(e) => saveVideoTime(e.currentTarget)}
             />
           )}
-          {video && <canvas ref={frameRef} className={`media-frame${started && !playing ? ' is-shown' : ''}`} aria-hidden="true" />}
         </div>
       </div>
-      {video && (
-        <button type="button" className="media-play" onClick={toggleVideo} aria-label={playing ? 'Pause video' : 'Play video'}>
-          {playing ? (
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <rect x="3.5" y="2.5" width="3" height="11" />
-              <rect x="9.5" y="2.5" width="3" height="11" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M4 2.5v11l9-5.5z" />
-            </svg>
-          )}
-        </button>
-      )}
       {children}
       {!src && withFloat && (
         <div className="media-float" aria-hidden="true">

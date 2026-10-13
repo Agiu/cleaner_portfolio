@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Who Owns Seattle</title>
+    <!-- Boot: keep the app invisible on the dark frame until it is ready (main.js adds .is-ready), so the
+         unstyled/unloaded layout never flashes. -->
+    <style>html, body { margin: 0; background: #1a1a19; } .app { opacity: 0; }</style>
+    <!-- Mobile gate: the map needs a mouse and a large screen, so touch-only devices (phones, tablets)
+         get a notice instead and the app never loads (src/entry.js checks the .is-mobile class). -->
+    <script>
+      if (matchMedia('(hover: none) and (pointer: coarse)').matches || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
+        document.documentElement.classList.add('is-mobile');
+    </script>
+    <style>
+      .mobile-gate { display: none; }
+      .is-mobile .app { display: none; }
+      .is-mobile .mobile-gate {
+        display: flex; flex-direction: column; justify-content: center; gap: 20px; min-height: 100vh; box-sizing: border-box;
+        padding: 40px 24px; max-width: 420px; margin: 0 auto; color: #f4f4f2; font-family: 'Inter', system-ui, sans-serif; line-height: 1.4;
+      }
+      .mobile-gate img { filter: grayscale(1) brightness(2.2); align-self: flex-start; }
+      .mobile-gate h1 { margin: 0; font-family: 'Geologica', system-ui, sans-serif; font-weight: 700; font-size: 28px; line-height: 1.15; }
+      .mobile-gate p { margin: 0; font-size: 16px; color: #c3c2bc; }
+      .mobile-gate a { align-self: flex-start; color: #f4f4f2; font-family: 'Geologica', system-ui, sans-serif; font-weight: 700; font-size: 14px; }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;700;900&family=Inter:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/who/assets/explore-BelD4-Bh.js"></script>
+    <link rel="modulepreload" crossorigin href="/who/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  </head>
+  <body>
+    <section class="mobile-gate" aria-labelledby="gate-title">
+      <img src="/who/assets/wos-logo.svg" width="156" height="60" alt="WOS — Who Owns Seattle" />
+      <h1 id="gate-title">The map is made for bigger screens</h1>
+      <p>The Who Owns Seattle visualizer needs a mouse and a desktop-sized display. Open this page on a laptop or desktop computer to explore it.</p>
+      <a href="/who/">← Back to the project</a>
+    </section>
+    <div class="app intro" data-view="map">
+      <header class="top">
+        <a class="home-link" href="/who/" aria-label="Who Owns Seattle: about the project"><img class="wos-logo" src="/who/assets/wos-logo.svg" width="156" height="60" alt="WOS — Who Owns Seattle" /></a>
+      </header>
+
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <img class="slu-group" src="/who/assets/slu-group.svg" width="324.639" height="187.414" alt="" />
+          <img class="slu-shape" src="/who/assets/slu-shape.svg" width="201.5" height="126" alt="" />
+          <h1 class="slu-title">South<br />Lake Union</h1>
+        </div>
+        <div class="sidebar-body">
+          <img class="sidebar-rule" src="/who/assets/rule-sidebar.svg" width="183.5" height="1" alt="" />
+          <h2 class="companies-title">Companies</h2>
+          <input class="company-search" type="search" placeholder="Search companies…" aria-label="Search companies" />
+          <ol class="company-list" aria-label="Companies ranked by land owned"></ol>
+          <nav class="pager" aria-label="Company list pages"></nav>
+        </div>
+      </aside>
+
+      <section class="cards">
+        <div class="card-slot hood-slot" hidden>
+          <p class="card-label">The Neighborhood</p>
+          <div class="tile hood-tile">
+            <p class="tile-title">Total Value of<br />South Lake Union</p>
+            <p class="hood-value" data-stat="hood-value"></p>
+            <p class="hood-sub"></p>
+          </div>
+        </div>
+        <div class="card-slot owner-slot">
+          <p class="card-label">The Owner</p>
+          <div class="owner-card">
+            <div class="owner-photo"><img alt="" /></div>
+            <p class="owner-name"></p>
+            <img class="owner-logo" alt="" hidden />
+          </div>
+        </div>
+        <div class="card-slot company-slot">
+          <p class="card-label">The Company</p>
+          <div class="company-card">
+            <div class="company-mark"><img class="company-logo" width="93" height="92" alt="" /><svg class="company-logo-fallback" width="93" height="92" viewBox="88 156 693 608" aria-hidden="true"><path d="M297 156 H572 V432 H297 Z" /><path fill-rule="evenodd" d="M88 442 H781 V764 H88 Z M386 442 H479 V643 L432 676 L386 643 Z M229 591 H241 V764 H229 Z M628 591 H640 V764 H628 Z" /><path d="M408 565 H479 V571 H408 Z M422 592 H479 V598 H422 Z M435 619 H479 V625 H435 Z" /></svg></div>
+            <div class="company-text">
+              <p class="company-name"></p>
+              <img class="company-rule" src="/who/assets/rule-company.svg" width="332" height="1" alt="" />
+              <div class="company-desc">
+                <p class="company-about"></p>
+                <p class="company-data"></p>
+              </div>
+              <div class="company-links">
+                <a class="company-website" target="_blank" rel="noopener">View Website →<img src="/who/assets/rule-link.svg" width="78" height="1" alt="" /></a>
+                <button type="button" class="company-more has-tip" data-tip="Sources &amp; entities" aria-expanded="false" aria-haspopup="true" aria-label="Sources and registered entities"><svg width="16" height="4" viewBox="0 0 16 4" aria-hidden="true"><circle cx="2" cy="2" r="2" /><circle cx="8" cy="2" r="2" /><circle cx="14" cy="2" r="2" /></svg></button>
+              </div>
+            </div>
+            <div class="entity-popover" hidden></div>
+          </div>
+        </div>
+        <div class="card-slot header-tile">
+          <div class="tile tile-land">
+            <div class="tile-texture" aria-hidden="true"><div class="tile-texture-rot"><img src="/who/assets/land-texture-1.png" alt="" /><img src="/who/assets/land-texture-2.png" alt="" /></div></div>
+            <p class="tile-title">Total Land<br />Ownership</p>
+            <p class="tile-value" data-stat="land"></p>
+          </div>
+        </div>
+        <div class="card-slot header-tile">
+          <div class="tile tile-active">
+            <p class="tile-title">Active<br />Parcels</p>
+            <p class="tile-value" data-stat="active"></p>
+          </div>
+        </div>
+        <nav class="view-tabs" aria-label="View">
+          <button type="button" data-view-tab="map" aria-pressed="true">Map</button>
+          <button type="button" data-view-tab="graph" aria-pressed="false">Graph</button>
+        </nav>
+      </section>
+
+      <main class="panel">
+        <section class="map-view" aria-label="Map">
+          <div id="map"></div>
+          <div class="zoom" role="group" aria-label="Zoom">
+            <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
+            <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
+            <button type="button" data-zoom="reset" aria-label="Reset view (arrow points north)" title="Reset view"><svg class="compass-needle" width="12" height="20" viewBox="0 0 12 20" aria-hidden="true"><path d="M6 0 L12 10 H0 Z" fill="currentColor" /><path d="M0 10 H12 L6 20 Z" fill="currentColor" opacity="0.35" /></svg></button>
+          </div>
+          <aside class="parcel-detail" hidden></aside>
+          <div class="map-tooltip" hidden></div>
+          <div class="timeline" role="group" aria-label="Timeline"></div>
+          <div class="map-guide" role="dialog" aria-modal="true" aria-labelledby="mg-title">
+            <div class="mg-inner">
+              <p class="mg-label" id="mg-title">Getting around the map</p>
+              <ul class="mg-tiles">
+              <li class="mg-tile mg-pan">
+                <p class="mg-title">Drag</p>
+                <p class="mg-sub">Move around</p>
+                <svg class="mg-map" width="96" height="64" viewBox="0 0 120 80" aria-hidden="true"><g class="mm-world"><rect x="-60" y="-60" width="240" height="200" class="mm-land" /><path class="mm-street" d="M-60 20 H180 M-60 52 H180 M-60 84 H180 M14 -60 V140 M50 -60 V140 M86 -60 V140 M122 -60 V140" /><rect class="mm-parcel" x="18" y="24" width="28" height="24" fill="#2a78d6" /><rect class="mm-parcel" x="54" y="24" width="28" height="24" fill="#1baf7a" /><rect class="mm-parcel mm-pick" x="54" y="56" width="28" height="24" fill="#eda100" /><rect class="mm-parcel" x="90" y="56" width="28" height="24" fill="#ad0468" /></g><path class="mm-cursor" d="M0 0 L0 14 L4 10.5 L7 17 L9.5 16 L6.5 9.5 L11.5 9.5 Z" /></svg>
+                <svg class="mg-mouse" width="28" height="42" viewBox="0 0 40 60" aria-hidden="true"><path class="mg-btn mg-btn-l is-lit" d="M20 2 H18 A16 16 0 0 0 2 18 V22 H20 Z" /><path class="mg-btn mg-btn-r" d="M20 2 H22 A16 16 0 0 1 38 18 V22 H20 Z" /><rect class="mg-btn mg-wheel" x="17" y="7" width="6" height="11" rx="3" /><rect class="mg-body" x="2" y="2" width="36" height="56" rx="16" /><path class="mg-body" d="M20 2 V22 M2 22 H38" /></svg>
+              </li>
+              <li class="mg-tile mg-turn">
+                <p class="mg-title">Right-drag</p>
+                <p class="mg-sub">Turn and tilt</p>
+                <svg class="mg-map" width="96" height="64" viewBox="0 0 120 80" aria-hidden="true"><g class="mm-world"><rect x="-60" y="-60" width="240" height="200" class="mm-land" /><path class="mm-street" d="M-60 20 H180 M-60 52 H180 M-60 84 H180 M14 -60 V140 M50 -60 V140 M86 -60 V140 M122 -60 V140" /><rect class="mm-parcel" x="18" y="24" width="28" height="24" fill="#2a78d6" /><rect class="mm-parcel" x="54" y="24" width="28" height="24" fill="#1baf7a" /><rect class="mm-parcel mm-pick" x="54" y="56" width="28" height="24" fill="#eda100" /><rect class="mm-parcel" x="90" y="56" width="28" height="24" fill="#ad0468" /></g><path class="mm-cursor" d="M0 0 L0 14 L4 10.5 L7 17 L9.5 16 L6.5 9.5 L11.5 9.5 Z" /></svg>
+                <svg class="mg-mouse" width="28" height="42" viewBox="0 0 40 60" aria-hidden="true"><path class="mg-btn mg-btn-l" d="M20 2 H18 A16 16 0 0 0 2 18 V22 H20 Z" /><path class="mg-btn mg-btn-r is-lit" d="M20 2 H22 A16 16 0 0 1 38 18 V22 H20 Z" /><rect class="mg-btn mg-wheel" x="17" y="7" width="6" height="11" rx="3" /><rect class="mg-body" x="2" y="2" width="36" height="56" rx="16" /><path class="mg-body" d="M20 2 V22 M2 22 H38" /></svg>
+              </li>
+              <li class="mg-tile mg-zoom">
+                <p class="mg-title">Scroll</p>
+                <p class="mg-sub">Zoom in and out</p>
+                <svg class="mg-map" width="96" height="64" viewBox="0 0 120 80" aria-hidden="true"><g class="mm-world"><rect x="-60" y="-60" width="240" height="200" class="mm-land" /><path class="mm-street" d="M-60 20 H180 M-60 52 H180 M-60 84 H180 M14 -60 V140 M50 -60 V140 M86 -60 V140 M122 -60 V140" /><rect class="mm-parcel" x="18" y="24" width="28" height="24" fill="#2a78d6" /><rect class="mm-parcel" x="54" y="24" width="28" height="24" fill="#1baf7a" /><rect class="mm-parcel mm-pick" x="54" y="56" width="28" height="24" fill="#eda100" /><rect class="mm-parcel" x="90" y="56" width="28" height="24" fill="#ad0468" /></g></svg>
+                <svg class="mg-mouse" width="28" height="42" viewBox="0 0 40 60" aria-hidden="true"><path class="mg-btn mg-btn-l" d="M20 2 H18 A16 16 0 0 0 2 18 V22 H20 Z" /><path class="mg-btn mg-btn-r" d="M20 2 H22 A16 16 0 0 1 38 18 V22 H20 Z" /><rect class="mg-btn mg-wheel is-lit" x="17" y="7" width="6" height="11" rx="3" /><rect class="mg-body" x="2" y="2" width="36" height="56" rx="16" /><path class="mg-body" d="M20 2 V22 M2 22 H38" /></svg>
+              </li>
+              <li class="mg-tile mg-click">
+                <p class="mg-title">Click</p>
+                <p class="mg-sub">See who owns a parcel</p>
+                <svg class="mg-map" width="96" height="64" viewBox="0 0 120 80" aria-hidden="true"><g class="mm-world"><rect x="-60" y="-60" width="240" height="200" class="mm-land" /><path class="mm-street" d="M-60 20 H180 M-60 52 H180 M-60 84 H180 M14 -60 V140 M50 -60 V140 M86 -60 V140 M122 -60 V140" /><rect class="mm-parcel" x="18" y="24" width="28" height="24" fill="#2a78d6" /><rect class="mm-parcel" x="54" y="24" width="28" height="24" fill="#1baf7a" /><rect class="mm-parcel mm-pick" x="54" y="56" width="28" height="24" fill="#eda100" /><rect class="mm-parcel" x="90" y="56" width="28" height="24" fill="#ad0468" /></g><circle class="mm-ripple" cx="68" cy="68" r="12" /><path class="mm-cursor" d="M0 0 L0 14 L4 10.5 L7 17 L9.5 16 L6.5 9.5 L11.5 9.5 Z" /></svg>
+                <svg class="mg-mouse" width="28" height="42" viewBox="0 0 40 60" aria-hidden="true"><path class="mg-btn mg-btn-l is-lit" d="M20 2 H18 A16 16 0 0 0 2 18 V22 H20 Z" /><path class="mg-btn mg-btn-r" d="M20 2 H22 A16 16 0 0 1 38 18 V22 H20 Z" /><rect class="mg-btn mg-wheel" x="17" y="7" width="6" height="11" rx="3" /><rect class="mg-body" x="2" y="2" width="36" height="56" rx="16" /><path class="mg-body" d="M20 2 V22 M2 22 H38" /></svg>
+              </li>
+              </ul>
+              <button type="button" class="mg-enter">Enter the map</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="graph-view" aria-label="Graphs" hidden>
+          <div class="graph-toolbar">
+            <button type="button" class="table-toggle" aria-pressed="false">View as table</button>
+          </div>
+          <figure class="band" id="band-parcels">
+            <figcaption><span class="band-title">Parcels held</span><span class="band-sub"></span></figcaption>
+            <div class="band-chart"></div>
+          </figure>
+          <figure class="band" id="band-value">
+            <figcaption><span class="band-title">Portfolio appraised value</span><span class="band-sub"></span></figcaption>
+            <div class="band-chart"></div>
+          </figure>
+          <figure class="band" id="band-total">
+            <figcaption><span class="band-title">Total value of South Lake Union</span><span class="band-sub"></span></figcaption>
+            <div class="band-chart"></div>
+          </figure>
+          <div class="graph-table" hidden></div>
+          <div class="chart-tooltip" hidden></div>
+        </section>
+      </main>
+      <p class="credits">
+        Parcels: King County GIS · Assessor · Elevation: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Tilezen Terrain Tiles</a>
+        · <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
+        © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>
+        © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
+      </p>
+    </div>
+  </body>
+</html>

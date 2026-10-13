@@ -22,11 +22,15 @@ export type CaseStudy = {
   mediaRatio: number
   /** Optional cover image; falls back to a wireframe placeholder. */
   image?: string
-  /** Optional muted hero video, played from a button on the case study hero. */
+  /** Optional muted video: plays while the home card is hovered and loops on the case study hero. */
   video?: string
+  /** Seconds into the video where its cover image was taken; playback starts there. */
+  videoStart?: number
+  /** Credit shown in the hero's bottom-right corner, for a video someone else made. */
+  videoCredit?: string
   outcomes: string[]
-  /** Empty lists hide their sidebar group. */
-  team: string[]
+  /** Empty lists hide their sidebar group. A plain name, or { name, linkedin } to link it. */
+  team: (string | Advisor)[]
   advisors: Advisor[]
   /** Right-hand scrollable content, parsed from src/content/work/<slug>.md; its ## headings
    *  also become the sidebar navigation. */
@@ -54,7 +58,8 @@ function placeholderPage() {
 const xbox = (f: string) => `/work/xbox/${f}`
 const foreflight = (f: string) => `/work/foreflight/${f}`
 
-// Xbox Arcade and ForeFlight are adapted from kaelub.com; the last two are still placeholders.
+// Xbox Arcade, ForeFlight and Who Owns Seattle are adapted from kaelub.com;
+// Project Three and Project Four are still placeholders.
 const studies: Omit<CaseStudy, 'sections'>[] = [
   {
     slug: 'xbox',
@@ -121,6 +126,52 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     mediaRatio: 615 / 1090,
     image: '/dummy/calyx/hero.jpg',
     ...placeholderPage(),
+  },
+  {
+    slug: 'wos',
+    title: 'Who Owns Seattle',
+    category: 'Data Visualization',
+    year: '2025',
+    summary: 'A working data visualizer tracing property ownership and economic change across South Lake Union, block by block, over time.',
+    mediaSide: 'left',
+    mediaRatio: 593 / 1090,
+    image: 'https://media.kaelub.com/WOS/Cover.jpg',
+    outcomes: [
+      'Built a Python and JavaScript scraper for King County’s parcel viewer, since the ownership dataset is paywalled.',
+      'Automated parcel collection with Claude, turning two days of mapping South Lake Union into 30 minutes.',
+      'Designed and built a working prototype: a story site and an ownership map with a scrubbable timeline, live at /who.',
+    ],
+    team: [],
+    advisors: [],
+  },
+  {
+    slug: 'occluded',
+    title: 'Occluded Forest',
+    category: 'Audio Programming',
+    year: '2026',
+    summary:
+      'Three weeks as audio programmer on a Unity VR forest, using sound to give players a sense of presence in a world that notices them.',
+    mediaSide: 'right',
+    mediaRatio: 615 / 1090,
+    image: '/work/occluded/cover.jpg', // the dusk frame from Hayden's hero video
+    video: 'https://media.kaelub.com/Occluded/Videohero.mp4',
+    videoStart: 15.5,
+    videoCredit: 'Video by Hayden Kim Dernbach',
+    outcomes: [
+      'Composed a lo-fi soundtrack and acknowledgement cues in Ableton, carrying as much sub-bass as the headset could take without rattling.',
+      'Built trigger boxes along the mushroom path in Unity that play a one-time cue when the player finds a deer.',
+      'Prototyped a head-follow script so deer turn to watch the player.',
+    ],
+    // Paste each teammate's LinkedIn URL in; a name links once its URL is set.
+    team: [
+      { name: 'Lia Chon', linkedin: 'https://www.linkedin.com/in/lia-chon/' },
+      { name: 'Kaitlyn Ellington', linkedin: 'https://www.linkedin.com/in/kaitlyn-ellington/' },
+      { name: 'Macks Brooks', linkedin: 'https://www.linkedin.com/in/macks-brooks-713579293/' },
+      { name: 'Kiana Gregorich', linkedin: 'https://www.linkedin.com/in/kiana-gregorich-23a708221/' },
+      'Caleb Aguiar',
+      { name: 'Hayden Kim Dernbach', linkedin: 'https://www.linkedin.com/in/hayden-kim-dernbach-9b60772a9/' },
+    ],
+    advisors: [],
   },
 ]
 
