@@ -18,12 +18,23 @@ export function expandToHero(media: HTMLElement, pageRoot: HTMLElement | null): 
   const rect = media.getBoundingClientRect()
   const sidebar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width')) || 292
 
+  // A More Work card (a MediaBlock) is hover-zoomed through CSS; note how far, so the clone can
+  // ease out of it rather than snap.
+  const zoom = Number(gsap.getProperty(media.querySelector('img, video') ?? media, 'scaleX')) || 1
+
   overlay = document.createElement('div')
   overlay.className = 'expand-overlay'
   const clone = media.cloneNode(true) as HTMLElement
   clone.removeAttribute('style') // drop reveal clip-path/opacity; the overlay handles its own shape
+  clone.classList.remove('cs-compact-media') // and the card's aspect ratio and hover zoom
   overlay.appendChild(clone)
   document.body.appendChild(overlay)
+  // An inlined card animation (CaseStudyCompact) would restart in the copy; hold it on its
+  // first frame instead, where the hero's own copy starts.
+  clone.getAnimations({ subtree: true }).forEach((a) => {
+    a.pause()
+    a.currentTime = 0
+  })
   // A hover-playing video moves into the overlay as-is (a copy would restart from black), and
   // keeps playing as it grows.
   const live = media.querySelector('video')
@@ -59,9 +70,13 @@ export function expandToHero(media: HTMLElement, pageRoot: HTMLElement | null): 
 
     tl.to(overlay, { left: frame.left + sidebar, top: 0, width: heroWidth, height: heroHeight }, 0)
       // Settle the inner layers to the hero's resting state (no hover zoom, its scroll-0 parallax).
-      .to(clone.querySelectorAll('.cs-hover, .cs-media-scale'), { scale: 1 }, 0)
+      // Main rows have .cs-* layers; More Work cards are a MediaBlock, the same as the hero.
+      .to(clone.querySelectorAll('.cs-hover, .cs-media-scale, .media-scale'), { scale: 1 }, 0)
       // The clone's copied transform parses as px, so zero y and drive yPercent (MediaBlock: -7 -> 7).
-      .to(clone.querySelector('.cs-parallax'), { y: 0, yPercent: -7 + 14 * heroProgress }, 0)
+      .to(clone.querySelector('.cs-parallax, .media-parallax'), { y: 0, yPercent: -7 + 14 * heroProgress }, 0)
+      // A More Work card's title and summary come off the image as it grows.
+      .to(clone.querySelector('.cs-compact-info'), { autoAlpha: 0, duration: 0.4, ease: 'power2.out' }, 0)
+    if (zoom !== 1) tl.fromTo(clone.querySelectorAll('img, video'), { scale: zoom }, { scale: 1 }, 0)
 
     // Placeholder-only mock-up card (absent once a real image is set).
     const float = clone.querySelector('.cs-float')
@@ -72,7 +87,7 @@ export function expandToHero(media: HTMLElement, pageRoot: HTMLElement | null): 
     // Clear the rest of the home page out of the way while it grows.
     if (pageRoot) {
       const q = gsap.utils.selector(pageRoot)
-      tl.to(q('.sidebar--home > *, .site-header, .cs, .cursor'), { autoAlpha: 0, duration: 0.5, ease: 'power2.out' }, 0)
+      tl.to(q('.sidebar--home > *, .site-header, .cs, .cs-more, .cursor'), { autoAlpha: 0, duration: 0.5, ease: 'power2.out' }, 0)
         .to(q('.sidebar--home'), { backgroundColor: '#ffffff', duration: 0.8, ease: 'power2.inOut' }, 0.1)
     }
   })

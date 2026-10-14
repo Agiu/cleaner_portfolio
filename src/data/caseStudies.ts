@@ -28,6 +28,13 @@ export type CaseStudy = {
   videoStart?: number
   /** Credit shown in the hero's bottom-right corner, for a video someone else made. */
   videoCredit?: string
+  /** An animated SVG (a public path) laid over the image: it plays on its own as the case study
+   *  hero, and only while hovered on the Work page card, where `image` is its still first frame. */
+  animation?: string
+  /** A slight drop shadow under the Work page card's text, for a hero that's bright under the title. */
+  inkShadow?: boolean
+  /** Arrow-link rows under the summary in the sidebar, styled like Resume and LinkedIn. */
+  links?: { label: string; href: string }[]
   outcomes: string[]
   /** Empty lists hide their sidebar group. A plain name, or { name, linkedin } to link it. */
   team: (string | Advisor)[]
@@ -42,25 +49,12 @@ export type CaseStudy = {
 const pages = import.meta.glob<string>('../content/work/*.md', { query: '?raw', import: 'default', eager: true })
 const pageFor = (slug: string) => parseCaseStudy(pages[`../content/work/${slug}.md`] ?? '')
 
-// Placeholder sidebar details shared by the unfinished studies until real copy lands.
-function placeholderPage() {
-  return {
-    outcomes: [
-      'A designer with a breadth across motion design, programming, and filmmaking.',
-      'A designer with a breadth across motion design, programming, and filmmaking.',
-      'A designer with a breadth across motion design, programming, and filmmaking.',
-    ],
-    team: ['Caleb Aguiar', 'Meera Divecha Forespring', 'Claude Santos'],
-    advisors: [{ name: 'Caleb Aguiar' }, { name: 'Meera Divecha Forespring' }, { name: 'Claude Santos' }],
-  }
-}
-
 const xbox = (f: string) => `/work/xbox/${f}`
 const foreflight = (f: string) => `/work/foreflight/${f}`
 const audio = (f: string) => `https://media.kaelub.com/Audio/${f}`
 
-// Xbox Arcade, ForeFlight, Project Open and Who Owns Seattle are adapted from kaelub.com;
-// Project Four is still a placeholder.
+// Xbox Arcade, ForeFlight, Project Open, Trinity University and Who Owns Seattle are adapted
+// from kaelub.com.
 const studies: Omit<CaseStudy, 'sections'>[] = [
   {
     slug: 'xbox',
@@ -126,25 +120,34 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     advisors: [],
   },
   {
-    slug: 'project-four',
-    title: 'Project Four',
-    category: 'Motion Design',
+    slug: 'trinity',
+    title: 'Trinity University',
+    category: 'UX Research',
     year: '2024',
-    summary: 'A short line describing the problem, the approach, and the outcome.',
+    summary:
+      'Recentering Trinity.edu’s school and program pages around everyone who uses the site.',
     mediaSide: 'right',
     mediaRatio: 615 / 1090,
-    image: '/dummy/calyx/hero.jpg',
-    ...placeholderPage(),
+    image: 'https://media.kaelub.com/Trinity-Redesign/Hero.jpg',
+    inkShadow: true, // the title sits over the mockup's white page
+    outcomes: [
+      'Built five user journey maps (current student, prospective student, job applicant, alumni and donor) from interview data, to surface pain points across Trinity.edu.',
+      'Developed an AI auditing agent from those journey maps that reviewed all 4,000+ pages on the site, cutting audit time by months.',
+      'Led wireframes and prototypes for school, department and program pages, reordering the page hierarchy around outcomes before marketing copy.',
+    ],
+    team: ['Caleb Aguiar'],
+    advisors: [{ name: 'Steph Enoch', role: 'Director' }],
   },
   {
     slug: 'wos',
     title: 'Who Owns Seattle',
     category: 'Data Visualization',
     year: '2025',
-    summary: 'A working data visualizer tracing property ownership and economic change across South Lake Union, block by block, over time.',
+    summary: 'A data visualizer tracing property ownership in South Lake Union, block by block, over time.',
     mediaSide: 'left',
     mediaRatio: 593 / 1090,
     image: 'https://media.kaelub.com/WOS/Cover.jpg',
+    links: [{ label: 'Live Site', href: 'https://kaelub.com/who' }],
     outcomes: [
       'Built a Python and JavaScript scraper for King County’s parcel viewer, since the ownership dataset is paywalled.',
       'Automated parcel collection with Claude, turning two days of mapping South Lake Union into 30 minutes.',
@@ -159,10 +162,11 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     category: 'Audio Programming',
     year: '2026',
     summary:
-      'Three weeks as audio programmer on a Unity VR forest, using sound to give players a sense of presence in a world that notices them.',
+      'Three weeks as audio programmer on a VR forest, using sound to make a world that notices you.',
     mediaSide: 'right',
     mediaRatio: 615 / 1090,
     image: '/work/occluded/cover.jpg', // the dusk frame from Hayden's hero video
+    inkShadow: true, // the title sits over pale snow
     video: 'https://media.kaelub.com/Occluded/Videohero.mp4',
     videoStart: 15.5,
     videoCredit: 'Video by Hayden Kim Dernbach',
@@ -180,6 +184,27 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
       'Caleb Aguiar',
       { name: 'Hayden Kim Dernbach', linkedin: 'https://www.linkedin.com/in/hayden-kim-dernbach-9b60772a9/' },
     ],
+    advisors: [],
+  },
+  {
+    slug: 'autotroph',
+    title: 'autotroph games',
+    category: 'Web Design',
+    year: '2026',
+    summary: 'A launch site for an indie studio’s Haunted Heist, built around players, press and creators.',
+    mediaSide: 'left',
+    mediaRatio: 593 / 1090,
+    image: 'https://media.kaelub.com/Autotroph/autotroph.jpg',
+    // The sprout, then the logo found by flashlight in the dark and knocked off by a knife, after
+    // Haunted Heist.
+    animation: '/work/autotroph/hero.svg',
+    links: [{ label: 'Live Site', href: 'https://autotrophgames.com' }],
+    outcomes: [
+      'Designed and built autotroph games’ website for the launch of Haunted Heist on October 12, 2026.',
+      'Gave players, press and creators each their own path: Buy now into three stores, a press kit per game, and creator key requests.',
+      'Kept every word in one content file and mapped each section to Squarespace, so the studio can run the site itself.',
+    ],
+    team: [],
     advisors: [],
   },
 ]

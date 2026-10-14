@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { animate, createScope, cubicBezier, onScroll, utils } from 'animejs'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import divider from '../assets/divider.svg'
+import { Arrow } from '../components/Arrow'
 import { MediaBlock } from '../components/MediaBlock'
 import { ArrowLink } from '../components/Profile'
 import { duration, greeting, positions, type Position, type ResumeLink, type Shot } from '../data/resume'
@@ -176,7 +177,7 @@ export function Resume() {
         </nav>
 
         <Link to={from} className="study-back back-drop" onClick={goBack}>
-          ← Go Back
+          <Arrow dir="w" /> Go Back
         </Link>
       </aside>
 

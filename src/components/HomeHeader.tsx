@@ -19,6 +19,12 @@ const PALETTE: Palette = { lo: [1 / 255, 1 / 255, 1 / 255], mid: [0x7a / 255, 0x
 let reelClock = 0
 let entrancePlayed = false
 
+/** Scrolling counts as stopped this long after the last scroll update. */
+const SCROLL_SETTLE_MS = 160
+/** How long the reel takes to wind down to a stop as scrolling starts, and back up once it stops. */
+const SLOW_DOWN_MS = 500
+const SPEED_UP_MS = 500
+
 export function HomeHeader() {
   const root = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -134,6 +140,10 @@ export function HomeHeader() {
       // the name sits in the page flow right under the header, and the drift would cover it.
       const wrap = el.parentElement!
       let faded = false
+      // While the page scrolls through the parallax the reel winds down to a standstill, so the
+      // heavy 3D scenes aren't drawing in the same frames as the scroll-linked motion (they made
+      // the drift hitch). It winds back up once scrolling settles. See the tick below.
+      let scrollingUntil = 0
       const mm = gsap.matchMedia()
       mm.add('(min-width: 900px)', () => {
         gsap.fromTo(
@@ -149,7 +159,10 @@ export function HomeHeader() {
               end: () => `+=${el.offsetHeight * 0.8}`,
               scrub: true,
               invalidateOnRefresh: true,
-              onUpdate: (self) => (faded = self.progress > 0.98),
+              onUpdate: (self) => {
+                faded = self.progress > 0.98
+                scrollingUntil = performance.now() + SCROLL_SETTLE_MS
+              },
             },
           },
         )
@@ -161,13 +174,23 @@ export function HomeHeader() {
       // On high-refresh screens the reel draws every other (or every few) ticks, so it runs at 60fps
       // or a little over rather than 120-240: it looks the same and costs a fraction as much. The
       // clock still advances every tick. frameMs is a running average of the screen's frame time.
+      // speed scales the clock: it eases to 0 while the page scrolls through the parallax (a half-second
+      // wind-down, like slowing a tape) and back to 1 once scrolling stops; at a standstill
+      // nothing is drawn at all.
       let frameMs = 1000 / 60
       let frame = 0
+      let speed = 1
       const tick = (_time: number, dt: number) => {
         if (!visible || faded) return
         const step = Math.min(dt, 100)
-        reelClock += step / 1000
         frameMs += (step - frameMs) * 0.05
+        const target = performance.now() < scrollingUntil ? 0 : 1
+        // Speed ramps linearly, so playback decelerates evenly to a stop over exactly SLOW_DOWN_MS
+        // (and back up over SPEED_UP_MS).
+        if (speed > target) speed = Math.max(target, speed - step / SLOW_DOWN_MS)
+        else if (speed < target) speed = Math.min(target, speed + step / SPEED_UP_MS)
+        if (speed === 0) return
+        reelClock += (step / 1000) * speed
         const every = Math.max(1, Math.floor(1000 / 60 / frameMs + 0.1))
         if (++frame % every === 0) render()
       }

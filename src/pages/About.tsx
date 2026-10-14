@@ -1,3 +1,4 @@
+import { Arrow } from '../components/Arrow'
 import { MediaBlock } from '../components/MediaBlock'
 import { ArrowLink } from '../components/Profile'
 import { profile } from '../data/caseStudies'
@@ -58,7 +59,7 @@ export function About() {
             {profile.links.map((link) => (
               <li key={link.label}>
                 <a className="about-link" href={link.href} target="_blank" rel="noreferrer">
-                  {link.label} <span className="contact-arrow">→</span>
+                  {link.label} <span className="contact-arrow"><Arrow dir="e" /></span>
                 </a>
               </li>
             ))}

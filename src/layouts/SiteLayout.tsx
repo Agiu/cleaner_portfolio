@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import divider from '../assets/divider.svg'
+import { Arrow } from '../components/Arrow'
 import { HomeHeader } from '../components/HomeHeader'
 import { Intro, SidebarContact, SidebarFooter } from '../components/Profile'
 import { gsap, useGSAP } from '../lib/gsap'
@@ -77,6 +78,11 @@ export function SiteLayout() {
   // About gets a Go Back bar at the top of the sidebar. Arriving, a slot opens and the bar drops
   // into it from above; leaving, it recedes back up into the top as the slot closes.
   const aboutBack = pathname === '/about'
+  // Go Back returns to whichever page About was opened from (Work or Films); Work when landed on directly.
+  const backTo = useRef('/')
+  useLayoutEffect(() => {
+    if (!aboutBack) backTo.current = pathname
+  }, [pathname])
   useGSAP(
     () => {
       const slot = back.current
@@ -119,13 +125,13 @@ export function SiteLayout() {
         <div className="sidebar-top">
           <div ref={back} className="site-back">
             <Link
-              to="/"
+              to={backTo.current}
               className="study-back"
-              onClick={(e) => go(e, '/')}
+              onClick={(e) => go(e, backTo.current)}
               tabIndex={aboutBack ? undefined : -1}
               aria-hidden={aboutBack ? undefined : true}
             >
-              ← Go Back
+              <Arrow dir="w" /> Go Back
             </Link>
           </div>
           <Intro onHome={(e) => go(e, '/')} />

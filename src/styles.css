@@ -303,6 +303,18 @@ a {
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Inline hairline arrows (components/Arrow): sit on the text's middle, like the Resume row's. */
+.arrow {
+  display: inline-block;
+  vertical-align: middle;
+  overflow: visible;
+  transform: translateY(-1px);
+}
+
+.study-back .arrow {
+  margin-right: 4px;
+}
+
 /* ---------- Sidebar layout (home + case study) ---------- */
 
 .layout-sidebar {
@@ -714,9 +726,11 @@ a {
   padding: 22px 24px;
 }
 
+/* Category over year. */
 .cs-meta {
   display: flex;
-  gap: 18px;
+  flex-direction: column;
+  gap: 2px;
   color: var(--ink-muted);
 }
 
@@ -750,7 +764,7 @@ a {
 /* Condensed studies after the full-size rows: a two-column grid in the Films page's format. */
 .cs-more {
   margin-top: 72px;
-  padding-top: 24px;
+  padding-top: 10px;
   border-top: 1px solid var(--ink);
 }
 
@@ -764,7 +778,7 @@ a {
 .cs-more-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 40px var(--row-gap);
+  gap: var(--row-gap); /* the same gap down as across */
 }
 
 .cs-compact-link {
@@ -776,13 +790,38 @@ a {
 }
 
 .cs-compact-media img,
-.cs-compact-media video {
+.cs-compact-media video,
+.cs-compact-anim {
   transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .cs-compact-link:hover .cs-compact-media img,
-.cs-compact-link:hover .cs-compact-media video {
+.cs-compact-link:hover .cs-compact-media video,
+.cs-compact-link:hover .cs-compact-anim {
   transform: scale(1.045);
+}
+
+/* An inlined animated SVG over the card's still (CaseStudyCompact): held on its first frame,
+   which matches the still, and played only while the card is hovered or focused. The selectors
+   outrank the SVG's own animation shorthands. */
+.cs-compact-anim {
+  position: absolute;
+  inset: 0;
+}
+
+.cs-compact-anim svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cs-compact .cs-compact-anim svg * {
+  animation-play-state: paused;
+}
+
+.cs-compact .cs-compact-link:hover .cs-compact-anim svg *,
+.cs-compact .cs-compact-link:focus-visible .cs-compact-anim svg * {
+  animation-play-state: running;
 }
 
 .cs-compact-info {
@@ -793,24 +832,46 @@ a {
   flex-direction: column;
   justify-content: space-between;
   padding: 22px 24px; /* same insets as the full rows' text panel */
-  /* Bottom scrim keeps the title readable on any image. */
-  background: linear-gradient(to top, rgb(0 0 0 / 0.75), rgb(0 0 0 / 0.35) 40%, transparent 70%);
   color: #fff;
   pointer-events: none;
 }
 
-/* Top scrim for the meta line; fades with it. */
-.cs-compact-info::before {
+/* A slight drop shadow for cards whose hero is bright under the title (the study's inkShadow). */
+.cs-compact--shadow .cs-compact-info {
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 16px rgb(0 0 0 / 0.35);
+}
+
+/* Scrims, fading in with the text they sit behind: the top one for the category and year, the
+   bottom one under the title and summary. On hover devices the card rests as the image alone
+   (see below); touch screens, which can't hover, keep the text and its scrims. */
+.cs-compact-info::before,
+.cs-compact-info::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(to bottom, rgb(0 0 0 / 0.45), transparent 28%);
   transition: opacity 0.5s ease;
 }
 
+.cs-compact-info::before {
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.7), rgb(0 0 0 / 0.35) 22%, transparent 45%);
+}
+
+.cs-compact-info::after {
+  background:
+    linear-gradient(to top, rgb(0 0 0 / 0.6), rgb(0 0 0 / 0.35) 45%, transparent 80%),
+    linear-gradient(to top, rgb(0 0 0 / 0.75), rgb(0 0 0 / 0.35) 40%, transparent 70%);
+}
+
+/* The title and summary block, faded and lifted in on hover (see below). */
+.cs-compact-body {
+  transition:
+    opacity 0.5s ease,
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .cs-compact-info .cs-compact-meta {
-  color: rgb(255 255 255 / 0.8);
+  color: rgb(255 255 255 / 0.9);
   transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -828,18 +889,25 @@ a {
 
 .cs-compact-info .cs-compact-summary {
   padding-top: 25px; /* the full rows' title -> summary gap */
-  color: rgb(255 255 255 / 0.85);
+  color: rgb(255 255 255 / 0.95);
   transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Hover devices: only the title at rest. The meta waits past the top edge and the summary
-   below the bottom edge; hover (or keyboard focus) slides each in from its nearest edge. */
+/* Hover devices: just the image at rest. The meta waits past the top edge, the title sits a
+   little low and faded, and the summary below the bottom edge; hover (or keyboard focus) brings
+   each in from its nearest edge with the scrims. */
 @media (hover: hover) and (pointer: fine) {
+  .cs-compact-link:not(:hover):not(:focus-visible) .cs-compact-body {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
   .cs-compact-link:not(:hover):not(:focus-visible) .cs-compact-meta {
     transform: translateY(calc(-100% - 24px));
   }
 
-  .cs-compact-link:not(:hover):not(:focus-visible) .cs-compact-info::before {
+  .cs-compact-link:not(:hover):not(:focus-visible) .cs-compact-info::before,
+  .cs-compact-link:not(:hover):not(:focus-visible) .cs-compact-info::after {
     opacity: 0;
   }
 
@@ -854,7 +922,9 @@ a {
 
 @media (prefers-reduced-motion: reduce) {
   .cs-compact-info::before,
+  .cs-compact-info::after,
   .cs-compact-info .cs-compact-meta,
+  .cs-compact-body,
   .cs-compact-more,
   .cs-compact-info .cs-compact-summary {
     transition: none;
@@ -877,7 +947,8 @@ a {
   will-change: left, top, width, height;
 }
 
-.expand-overlay > .cs-media {
+.expand-overlay > .cs-media,
+.expand-overlay > .media {
   position: absolute;
   inset: 0;
 }
@@ -892,18 +963,31 @@ a {
   padding: 32px 24px 0;
 }
 
-.study-year {
+/* Breadcrumb over the title: the year, small and grey like the sidebar's status line. */
+.study-crumb {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ink-muted);
+}
+
+.study-title {
   /* Matches the home sidebar name: 36px, Black (900). */
+  max-width: 244px;
+  margin-top: 10px;
   font-size: 36px;
   line-height: 34px;
   font-weight: 900;
 }
 
-.study-title {
+.study-head .study-summary {
   margin-top: 16px;
-  font-size: 20px;
-  line-height: 43px;
-  font-weight: 500;
+}
+
+/* Case study links (e.g. Who Owns Seattle's live site) under Outcomes: the Resume/LinkedIn rows,
+   inset to the same 34px right edge inside .study-swap's own 24px padding. */
+.study-details .study-links {
+  flex: none;
+  padding: 0 10px 0 0;
 }
 
 .study-summary,
@@ -1013,7 +1097,7 @@ a {
   height: 43px;
   margin-left: 1px;
   padding-left: 17px;
-  background: var(--surface-contact);
+  background: var(--surface); /* same grey as the case study content */
   font-size: 15px;
   line-height: 43px;
   font-weight: 500;
@@ -1121,7 +1205,7 @@ a {
   right: 16px;
   bottom: 16px;
   display: grid;
-  font-size: 20px; /* matches the case study title in the sidebar (.study-title) */
+  font-size: 20px;
   line-height: 24px;
   font-weight: 500;
   pointer-events: none;
@@ -1170,6 +1254,141 @@ a {
      (see expandToHero in pageTransition.ts) with no pop between the transition and the real page. */
   height: 100vh;
   height: 100svh;
+}
+
+/* ---------- Hero scene: autotroph games' site building itself in a window (heroes/AutotrophSite) ---------- */
+
+.ah-site {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  container-type: size;
+  background: radial-gradient(120% 90% at 50% 45%, #10142a 0%, #070912 55%, #030409 100%);
+}
+
+/* A low crimson light behind the window, as if the screen lit the room. */
+.ah-site-glow {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  background: radial-gradient(42% 38% at 50% 52%, rgb(208 22 72 / 0.28), transparent 70%);
+}
+
+.ah-site-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  perspective: 1800px;
+}
+
+/* Sized to the frame's width or height, whichever binds: the screen is the site's 1440 x 842
+   hero, plus a 3% bar. */
+.ah-site-window {
+  width: min(82cqw, 120cqh);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0b0e1c;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.08),
+    0 40px 120px -20px rgb(0 0 0 / 0.75),
+    0 12px 40px -12px rgb(208 22 72 / 0.25);
+  transform-style: preserve-3d;
+}
+
+.ah-site-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: max(22px, 3cqw);
+  padding: 0 1.2%;
+  background: #0f1324;
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
+}
+
+.ah-site-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.ah-site-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.16);
+}
+
+.ah-site-url {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  padding: 2px 14px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(255 255 255 / 0.55);
+  font-size: clamp(9px, 0.95cqw, 13px);
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.ah-site-screen {
+  position: relative;
+  aspect-ratio: 1440 / 842;
+  overflow: hidden;
+  background: #050a1c;
+}
+
+.ah-site-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+/* The knife pattern wipes in along the blades' direction: --wipe sweeps the mask's edge across. */
+.ah-site-knives {
+  --wipe: 120%;
+  -webkit-mask-image: linear-gradient(128deg, #000 calc(var(--wipe) - 25%), transparent var(--wipe));
+  mask-image: linear-gradient(128deg, #000 calc(var(--wipe) - 25%), transparent var(--wipe));
+}
+
+.ah-site-buy {
+  transform-origin: 9.4% 73.9%; /* the button's centre */
+}
+
+.ah-site-buy-open {
+  visibility: hidden;
+}
+
+.ah-site-cursor {
+  position: absolute;
+  left: 62%;
+  top: 96%;
+  width: max(14px, 1.7cqw);
+  height: auto;
+  visibility: hidden;
+  transform-origin: 20% 10%;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.5));
+}
+
+/* The card's still (crimson field and sprout), full bleed, which the scene pulls back into the
+   screen. */
+.ah-site-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ah-site-glow,
+  .ah-site-layer:not(.ah-site-buy-open) {
+    visibility: visible;
+  }
 }
 
 /* The copy runs down the middle of the page, on the same centre line as the prototypes; the
@@ -3587,7 +3806,7 @@ a {
 }
 
 .layout-resume .study-main {
-  background: var(--surface-contact); /* same grey as the Go Back bar */
+  background: var(--surface); /* same grey as the case study content and the Go Back bar */
 }
 
 .resume-intro {
@@ -3957,7 +4176,7 @@ a {
 
   .resume-entries {
     padding: 64px 16px 25vh;
-    background: var(--surface-contact);
+    background: var(--surface);
   }
 
   .resume-entry {

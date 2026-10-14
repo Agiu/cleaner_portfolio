@@ -1,10 +1,13 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import divider from '../assets/divider.svg'
+import { Arrow } from '../components/Arrow'
 import { AudioTracks } from '../components/AudioTracks'
 import { fitsNoteBeside, isWidePrototype, Prototype } from '../components/blocks'
 import { CodeBlock } from '../components/CodeBlock'
+import { heroScenes } from '../components/heroes'
 import { MediaBlock } from '../components/MediaBlock'
+import { ArrowLink } from '../components/Profile'
 import { findCaseStudy, type Advisor, type CaseStudy, type CaseStudySection } from '../data/caseStudies'
 import type { SectionBlock } from '../lib/caseStudyMarkdown'
 import { gsap, ScrollTrigger, useGSAP } from '../lib/gsap'
@@ -28,6 +31,8 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
   const expanded = Boolean(navState?.expanded)
   // Opened from somewhere other than the home list (e.g. /recruiter): Go Back returns there.
   const backTo = navState?.from ?? '/'
+  // A study whose hero is a scene (heroes/) shows it over its still image.
+  const HeroScene = heroScenes[study.slug]
   useIntro(root)
 
   // Hold the expanded overlay (which may be showing the card's playing video) until the hero's
@@ -110,7 +115,7 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
     <div ref={root} className="layout-sidebar layout-study">
       <aside className="sidebar sidebar--study">
         <div className="study-head">
-          <p className="study-year" data-split>
+          <p className="study-crumb intro-fade">
             {study.year}
           </p>
           <h1 className="study-title" data-split>
@@ -122,6 +127,15 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
         <div className="study-swap">
           <div className="study-details" data-lenis-prevent>
             {study.outcomes.length > 0 && <DetailGroup title="Outcomes" items={study.outcomes} spacious />}
+            {study.links && (
+              <ul className="sidebar-links study-links">
+                {study.links.map((link) => (
+                  <li key={link.href} className="intro-fade">
+                    <ArrowLink href={link.href} label={link.label} />
+                  </li>
+                ))}
+              </ul>
+            )}
             {study.team.length > 0 && (
               <PeopleGroup title="Team Members" people={study.team.map((p) => (typeof p === 'string' ? { name: p } : p))} />
             )}
@@ -151,12 +165,13 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
         </div>
 
         <Link to="/" className="study-back back-drop" onClick={goBack}>
-          ← Go Back
+          <Arrow dir="w" /> Go Back
         </Link>
       </aside>
 
       <main className="study-main">
-        <MediaBlock className="study-hero" src={study.image} video={study.video} videoStart={study.videoStart} withFloat skipReveal={expanded}>
+        <MediaBlock className="study-hero" src={HeroScene ? study.image : (study.animation ?? study.image)} video={study.video} videoStart={study.videoStart} withFloat skipReveal={expanded}>
+          {HeroScene && <HeroScene />}
           {study.videoCredit && (
             <p className="media-credit">
               {/* Stacked copies, each blending over the last: strip the colour from the video behind,
@@ -188,7 +203,7 @@ function PeopleGroup({ title, people }: { title: string; people: Advisor[] }) {
           <li key={a.name}>
             {a.linkedin ? (
               <a className="study-person-link" href={a.linkedin} target="_blank" rel="noreferrer">
-                <span className="study-person-name">{a.name}</span> <span className="contact-arrow">↗</span>
+                <span className="study-person-name">{a.name}</span> <span className="contact-arrow"><Arrow dir="ne" /></span>
               </a>
             ) : (
               <span>{a.name}</span>
