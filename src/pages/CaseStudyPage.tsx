@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import divider from '../assets/divider.svg'
 import { AudioTracks } from '../components/AudioTracks'
+import { fitsNoteBeside, isWidePrototype, Prototype } from '../components/blocks'
 import { CodeBlock } from '../components/CodeBlock'
 import { MediaBlock } from '../components/MediaBlock'
 import { findCaseStudy, type Advisor, type CaseStudy, type CaseStudySection } from '../data/caseStudies'
@@ -213,43 +214,38 @@ function DetailGroup({ title, items, spacious = false }: { title: string; items:
   )
 }
 
+/** Image rows and wide prototypes break out of the text grid; everything else sits in the copy. */
+const isWide = (block: SectionBlock) =>
+  (block.kind === 'media' && !block.side) || (block.kind === 'prototype' && isWidePrototype(block.name))
+/** A "side" image starts a text run of its own and sits in its left column. */
+const isSide = (block: SectionBlock) => block.kind === 'media' && block.side
+
 /**
  * One ## section of the case study's Markdown. Runs of text sit in the heading + copy grid;
- * each image row breaks out full width between them, so text and images can alternate.
+ * each image row or wide prototype breaks out full width between them, so they can alternate.
  */
 function Section({ section }: { section: CaseStudySection }) {
-  // Split the blocks into alternating runs: consecutive text blocks, or one media/video row.
-  // A "side" image starts a text run of its own and sits in its left column.
-  const isRow = (block: SectionBlock) => (block.kind === 'media' && !block.side) || block.kind === 'video'
-  const isSide = (block: SectionBlock) => block.kind === 'media' && block.side
+  // A note written beside a prototype that has no room for one drops below it instead.
+  const blocks = section.blocks.flatMap((block): SectionBlock[] =>
+    block.kind === 'prototype' && block.aside && !fitsNoteBeside(block.name)
+      ? [{ ...block, aside: undefined }, { kind: 'note', html: block.aside }]
+      : [block],
+  )
+
+  // Split the blocks into alternating runs: consecutive text blocks, or one wide block.
   const runs: SectionBlock[][] = []
-  for (const block of section.blocks) {
+  for (const block of blocks) {
     const last = runs[runs.length - 1]
-    if (!isRow(block) && !isSide(block) && last && !isRow(last[0])) last.push(block)
+    if (!isWide(block) && !isSide(block) && last && !isWide(last[0])) last.push(block)
     else runs.push([block])
   }
   // A section that opens on images still gets its heading first.
-  if (!runs.length || isRow(runs[0][0])) runs.unshift([])
+  if (!runs.length || isWide(runs[0][0])) runs.unshift([])
 
   return (
     <section id={section.id} className="study-section">
       {runs.map((run, i) => {
         const first = run[0]
-        if (first?.kind === 'video') {
-          return (
-            <div key={i} className="study-media" data-count={1}>
-              <div className="study-video">
-                <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${first.youtube}?rel=0`}
-                  title="YouTube video"
-                  loading="lazy"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-          )
-        }
         if (first?.kind === 'media' && first.side) {
           return (
             <div key={i} className={`study-section-text study-section-text--side${i > 0 ? ' study-section-text--more' : ''}`}>
@@ -275,8 +271,21 @@ function Section({ section }: { section: CaseStudySection }) {
               style={first.aspect ? ({ '--aspect': first.aspect } as React.CSSProperties) : undefined}
             >
               {first.images.map((img, j) => (
-                <MediaBlock key={j} src={img.src} alt={img.alt} still={first.still} />
+                // The alt text is the caption: shown under the image, so the image itself is
+                // left unlabelled rather than read out twice.
+                <figure key={j} className="study-figure" style={first.maxWidth ? { maxWidth: first.maxWidth } : undefined}>
+                  <MediaBlock src={img.src} still={first.still} className={first.clear ? 'media--clear' : ''} />
+                  {img.alt && <figcaption>{img.alt}</figcaption>}
+                </figure>
               ))}
+            </div>
+          )
+        }
+        if (first?.kind === 'prototype' && isWide(first)) {
+          return (
+            <div key={i} className={`study-proto${first.aside ? ' study-proto--aside' : ''}`}>
+              <Prototype name={first.name} content={first.content} />
+              {first.aside && <p className="study-section-note" dangerouslySetInnerHTML={{ __html: first.aside }} />}
             </div>
           )
         }
@@ -299,6 +308,10 @@ function TextBlock({ block }: { block: SectionBlock }) {
   switch (block.kind) {
     case 'lead':
       return <p className="study-section-lead" dangerouslySetInnerHTML={{ __html: block.html }} />
+    case 'note':
+      return <p className="study-section-note" dangerouslySetInnerHTML={{ __html: block.html }} />
+    case 'prototype':
+      return <Prototype name={block.name} content={block.content} />
     case 'subheading':
       return <h3 className="study-section-subheading" dangerouslySetInnerHTML={{ __html: block.html }} />
     case 'list':

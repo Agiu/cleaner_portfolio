@@ -57,9 +57,10 @@ function placeholderPage() {
 
 const xbox = (f: string) => `/work/xbox/${f}`
 const foreflight = (f: string) => `/work/foreflight/${f}`
+const audio = (f: string) => `https://media.kaelub.com/Audio/${f}`
 
-// Xbox Arcade, ForeFlight and Who Owns Seattle are adapted from kaelub.com;
-// Project Three and Project Four are still placeholders.
+// Xbox Arcade, ForeFlight, Project Open and Who Owns Seattle are adapted from kaelub.com;
+// Project Four is still a placeholder.
 const studies: Omit<CaseStudy, 'sections'>[] = [
   {
     slug: 'xbox',
@@ -106,15 +107,23 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     ],
   },
   {
-    slug: 'project-three',
-    title: 'Project Three',
-    category: 'Filmmaking',
+    slug: 'audio',
+    title: 'Project Open',
+    category: 'Product Design',
     year: '2025',
-    summary: 'A short line describing the problem, the approach, and the outcome.',
+    summary:
+      'Project Open is an audio form factor designed to improve the shortcomings of current headphones and earphones.',
     mediaSide: 'left',
     mediaRatio: 593 / 1090,
-    image: '/dummy/harbor/hero.jpg',
-    ...placeholderPage(),
+    image: audio('image_placeholder_8.png'),
+    video: 'https://media.kaelub.com/%20headphones_background_v1%20(2160p).mp4',
+    outcomes: [
+      'Led the main prototyping and 3D modeling for nearly 20 iterative concepts.',
+      'Contributed to nearly 30 trials of user testing to adjust designs for over 94 potential ears.',
+      'Developed a branding and pitch video demonstrating the headphones’ interactions.',
+    ],
+    team: ['Caleb Aguiar', 'Alexander Akande', 'Kaiyo Fan', 'Meera Divecha Forespring', 'Hannah Hatchett'],
+    advisors: [],
   },
   {
     slug: 'project-four',
@@ -181,7 +190,7 @@ export const findCaseStudy = (slug: string | undefined) => caseStudies.find((s) 
 
 export const profile = {
   name: 'Caleb Aguiar',
-  bio: 'A designer working across product design, motion, programming, and filmmaking.',
+  bio: 'A product designer working across UX design, motion, programming, and filmmaking.',
   status: 'I’m currently based in Seattle, WA and am looking for Product/UX Designer opportunities.',
   resume: 'https://media.kaelub.com/Caleb_Design_Resume.pdf',
   /** Seattle; drives the header's time-of-day colours. */

@@ -142,6 +142,16 @@ a {
   line-height: 18px;
 }
 
+/* Location + Resume/LinkedIn, pushed to the foot of the sidebar, just above the footer strip. */
+.sidebar-contact {
+  margin-top: auto;
+  padding-bottom: 24px;
+}
+
+.sidebar-contact .intro-status {
+  padding: 0 29px 0 24px;
+}
+
 /* Arrow link rows (Resume, LinkedIn) */
 
 .sidebar-links {
@@ -596,27 +606,10 @@ a {
   height: 100%;
 }
 
-/* Wrapper for the header and its glow. Isolated so the glow stays behind the header only. */
+/* Wrapper for the header, which the parallax on desktop moves and fades (see HomeHeader). */
 .hh-wrap {
   position: relative;
-  isolation: isolate;
-  /* The glow only spills out of the foot, into the page; top and sides are open edges now. */
-  clip-path: inset(0 0 -160px 0);
   will-change: transform, opacity;
-}
-
-/* A blurred, scaled-up copy of the live reel (drawn each frame in HomeHeader). No horizontal
-   bleed: the frame is edge-to-edge now (no dark margin to absorb it), and clip-path already
-   hides the left/right/top bleed anyway, so widening the box there only opens a scrollbar. */
-.hh-glow {
-  position: absolute;
-  inset: -24px 0;
-  z-index: -1;
-  width: 100%;
-  height: calc(100% + 48px); /* even top and bottom, so it reads as light, not a drop shadow */
-  filter: blur(40px) saturate(1.3);
-  visibility: hidden; /* revealed by GSAP with the header */
-  pointer-events: none;
 }
 
 /* ---------- Case studies ---------- */
@@ -1179,11 +1172,21 @@ a {
   height: 100svh;
 }
 
+/* The copy runs down the middle of the page, on the same centre line as the prototypes; the
+   title hangs in the margin to its left. 15px here so the copy track's 60ch is the copy's own. */
 .study-section-text {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: minmax(160px, 1fr) minmax(0, 60ch) minmax(0, 1fr);
   gap: 24px;
   padding: 72px 48px 32px;
+  font-size: 15px;
+}
+
+@media (min-width: 900px) {
+  .study-section-text > :first-child {
+    justify-self: end;
+    width: min(100%, 200px);
+  }
 }
 
 .study-section-text h2 {
@@ -1275,14 +1278,377 @@ a {
   aspect-ratio: var(--aspect, 4 / 3);
 }
 
-/* YouTube embeds (```youtube in the Markdown) sit in the same full-width rows as images. */
-.study-video {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  background: var(--media);
+/* Notes: a > that doesn't open its section. A short rule leads in, like the nav's current-item dash. */
+.study-section-copy .study-section-note,
+.study-proto .study-section-note {
+  display: flex;
+  gap: 8px;
+  max-width: 60ch;
+  font-size: var(--text-sm);
+  line-height: 22px;
+  color: var(--ink-muted);
 }
 
-.study-video iframe {
+.study-section-note::before {
+  content: '';
+  flex: none;
+  width: 20.5px;
+  height: 1px;
+  margin-top: 11px;
+  background: currentColor;
+}
+
+/* ==Highlighted== runs read a step stronger than the copy around them. */
+.study-section-copy mark {
+  background: none;
+  color: inherit;
+  font-weight: 500;
+}
+
+/* A fenced block with no prototype behind it, shown as written. */
+.study-section-pre {
+  max-width: 60ch;
+  padding: 16px;
+  background: var(--surface-contact);
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  white-space: pre-wrap;
+}
+
+/* An image row's images, each with its alt text as a small grey caption centred underneath.
+   Capped at the image's own width (set inline from the row's pixel size) and centred. */
+.study-figure {
+  width: 100%;
+  min-width: 0;
+  margin: 0 auto;
+}
+
+.study-figure figcaption {
+  max-width: 60ch;
+  margin: 0 auto;
+  padding-top: 10px;
+  text-align: center;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+/* "clear" rows: cut-outs with transparent backgrounds sit straight on the page grey, whole
+   (contained in the frame, never cropped). */
+.media--clear {
+  background: none;
+}
+
+.media--clear img {
+  object-fit: contain;
+}
+
+/* ---------- Case study prototypes (```fenced blocks, src/components/blocks) ---------- */
+
+/* ```masters / ```recruiter: a notice in the copy column, behind the nav's dash. */
+.study-section-copy .proto-notice {
+  display: grid;
+  gap: 2px;
+  max-width: 60ch;
+  padding-left: 28.5px;
+  background: linear-gradient(currentColor, currentColor) 0 11px / 20.5px 1px no-repeat;
+  font-size: var(--text-sm);
+  line-height: 22px;
+  color: var(--ink-muted);
+}
+
+.study-section-copy .proto-notice p {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.study-section-copy .proto-notice .proto-notice-title {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* ```stats: big figures in the year's display weight, each under a small label. */
+.proto-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 24px;
+  max-width: 60ch;
+  margin: 10px 0 6px;
+}
+
+.proto-stats div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ink);
+}
+
+.proto-stats dt {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+.proto-stats dd {
+  margin: 0;
+  font-size: 36px;
+  line-height: 34px;
+  font-weight: 900;
+}
+
+/* ```button: the sidebar's arrow-link row, at the résumé CTAs' width. Its rule is the
+   underline, so the copy's own link underline stays off it. */
+.study-section-copy .arrow-link {
+  text-decoration: none;
+}
+
+.proto-button {
+  width: 240px;
+  max-width: 100%;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+/* ```insights: numbered findings, title over a grey description (the résumé's impact list). */
+.proto-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 60ch;
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proto-insights li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.proto-insights-index {
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.study-section-copy .proto-insights p {
+  color: var(--ink-muted);
+}
+
+.study-section-copy .proto-insights .proto-insights-title {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* ```hmw / ```rules / ```questions: sentences a step up from the copy, hung off a rule. */
+.proto-statements {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 60ch;
+  margin: 6px 0;
+  padding-left: 20px;
+  border-left: 1px solid var(--ink);
+}
+
+.study-section-copy .proto-statements .proto-statements-label {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+.study-section-copy .proto-statements .proto-statements-text {
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* ```quotes: every voice at once, in the résumé summary's type, attributions behind the dash. */
+.proto-quotes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 40px 48px;
+  width: 100%;
+  max-width: 960px;
+}
+
+.proto-quotes blockquote {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.proto-quotes-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+.proto-quotes-who::before {
+  content: '';
+  width: 20.5px;
+  height: 1px;
+  background: currentColor;
+}
+
+/* ```3d-model: the contour model in ink on the page grey; drag to turn it. */
+.proto-model-canvas {
+  display: block;
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 16 / 10;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.proto-model-canvas[data-dragging] {
+  cursor: grabbing;
+}
+
+.proto-model-hint {
+  margin-top: 8px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+/* Wide prototypes break out of the text grid like an image row, on the same gutters. The row is
+   the size container the prototypes' @container rules measure (a stage can't be one: a size
+   container has no width of its own to offer when it sits beside a note). */
+.study-proto {
+  container-type: inline-size;
+  padding: 0 var(--row-gap);
+}
+
+/* A prototype sits straight on the page grey, centred on the copy's centre line. */
+.proto-stage {
+  --proto-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 48px;
+  overflow: hidden;
+}
+
+/* A note written on the line after the fence: the prototype keeps the centre line and the note
+   hangs in the margin to its right, mirroring the titles in the margin to the left. */
+@media (min-width: 1200px) {
+  .study-proto--aside {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    column-gap: 48px;
+    align-items: start;
+  }
+
+  .study-proto--aside > .proto-stage {
+    grid-column: 2;
+    padding-inline: 0;
+  }
+
+  .study-proto--aside > .study-section-note {
+    max-width: 300px;
+    padding-top: 40px; /* level with the top of the prototype */
+  }
+}
+
+/* Narrower: the note drops under the prototype, on the copy's measure. */
+@media (max-width: 1199px) {
+  .study-proto--aside > .study-section-note {
+    margin-inline: auto;
+  }
+}
+
+/* ```stream: the list it replaces, hung off a spine whose marks pulse as fields are recorded. */
+.proto-stream {
+  position: relative;
+  max-width: 60ch;
+  padding-left: 20px;
+}
+
+.proto-stream-spine {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 1px;
+  background: var(--ink-muted);
+  transform-origin: top center;
+}
+
+.proto-stream-item {
+  position: relative;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.proto-stream-item + .proto-stream-item {
+  margin-top: 6px;
+}
+
+/* Sits on the spine, not beside it: a pulse running down the marks reads as the line being written. */
+.proto-stream-mark {
+  position: absolute;
+  top: 9.5px;
+  left: -22px;
+  width: 5px;
+  height: 5px;
+  background: var(--ink-muted);
+  transition:
+    background-color 0.14s ease,
+    transform 0.14s ease;
+}
+
+.proto-stream-mark.is-live {
+  background: var(--ink);
+  transform: scale(1.6);
+}
+
+/* ```youtube: an image slot until pressed, with the hero's play button in the corner. */
+.proto-video {
+  aspect-ratio: 16 / 9;
+}
+
+.proto-video-facade {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.proto-video-facade img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.proto-video-facade:hover .media-play,
+.proto-video-facade:focus-visible .media-play {
+  transform: scale(1.08);
+}
+
+.proto-video-facade:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.proto-video-frame {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1434,6 +1800,54 @@ a {
   font-weight: 500;
 }
 
+/* ```flow: track logs on one side, the logbook entry on the other, fields crossing between.
+   What's written plainly is the finished state; [data-anim] winds it back while it plays. */
+.proto-flow-board,
+.proto-flow-captions {
+  width: 100%;
+  max-width: 960px;
+}
+
+.proto-flow-board {
+  position: relative;
+  display: grid;
+  gap: 24px;
+}
+
+@container (min-width: 816px) {
+  .proto-flow-board {
+    grid-template-columns: minmax(0, 0.8fr) 64px minmax(0, 1.25fr);
+    align-items: start;
+  }
+}
+
+.proto-flow-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.proto-flow-label {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+.proto-flow-log {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  padding: 14px 44px 16px 16px;
+  background: var(--bg);
+}
+
+.proto-flow-route {
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
 .audio-track-rule {
   grid-column: 1 / -1;
   position: relative;
@@ -1463,6 +1877,1672 @@ a {
 .audio-track-rule:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
+}
+
+.proto-flow-meta {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A state on the row rather than a label of it: an inked tag. */
+.proto-flow-linked {
+  margin-top: 8px;
+  padding: 1px 8px;
+  font-size: 10px;
+  line-height: 15px;
+  color: var(--bg);
+  background: var(--ink);
+  transition: opacity 0.26s ease;
+}
+
+.proto-flow-kebab {
+  position: absolute;
+  top: 16px;
+  right: 14px;
+  display: grid;
+  gap: 2px;
+  padding: 4px 6px;
+}
+
+.proto-flow-kebab i {
+  display: block;
+  width: 3px;
+  height: 3px;
+  background: var(--ink);
+}
+
+/* Hangs off the kebab, absolutely positioned so it can be measured (for the pointer) while hidden. */
+.proto-flow-menu {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  z-index: 3;
+  display: grid;
+  min-width: 152px;
+  padding: 6px 0;
+  background: var(--bg);
+  box-shadow:
+    0 0 0 1px var(--surface-contact),
+    0 30px 60px -30px rgb(0 0 0 / 0.35);
+  transform-origin: top right;
+  opacity: 0;
+}
+
+.proto-flow-menu-item {
+  padding: 6px 14px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  transition: background-color 0.14s ease;
+}
+
+.proto-flow-menu-item[data-menu-item='link'] {
+  font-weight: 500;
+}
+
+.proto-flow-menu-item[data-hot] {
+  background: var(--surface-contact);
+}
+
+/* The gap the data crosses: dashes along the direction of travel, moving only while fields cross.
+   Vertical while the board is stacked, horizontal once it's three columns. */
+.proto-flow-wire {
+  display: flex;
+  justify-content: center;
+}
+
+.proto-flow-wire-line {
+  width: 1px;
+  height: 32px;
+  background-image: repeating-linear-gradient(180deg, var(--ink-muted) 0 4px, transparent 4px 11px);
+  background-size: 1px 11px;
+}
+
+.proto-flow[data-wire='flowing'] .proto-flow-wire-line {
+  animation: proto-flow-wire-down 0.5s linear infinite;
+}
+
+@container (min-width: 816px) {
+  .proto-flow-wire {
+    align-self: stretch;
+    align-items: center;
+    min-height: 128px;
+  }
+
+  .proto-flow-wire-line {
+    width: 100%;
+    height: 1px;
+    background-image: repeating-linear-gradient(90deg, var(--ink-muted) 0 4px, transparent 4px 11px);
+    background-size: 11px 1px;
+  }
+
+  .proto-flow[data-wire='flowing'] .proto-flow-wire-line {
+    animation-name: proto-flow-wire-across;
+  }
+}
+
+@keyframes proto-flow-wire-down {
+  to {
+    background-position-y: 11px;
+  }
+}
+
+@keyframes proto-flow-wire-across {
+  to {
+    background-position-x: 11px;
+  }
+}
+
+.proto-flow-entry {
+  position: relative;
+  padding: 16px 18px 18px;
+  background: var(--bg);
+}
+
+.proto-flow-entry-title,
+.proto-flow-entry-ghost {
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+.proto-flow-entry-title {
+  display: block;
+}
+
+/* Sits exactly where the title will, so the head never jumps when the real one resolves. */
+.proto-flow-entry-ghost {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  color: var(--ink-muted);
+  opacity: 0;
+}
+
+.proto-flow-rows {
+  margin: 10px 0 0;
+}
+
+.proto-flow-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--media);
+}
+
+.proto-flow-row-label {
+  flex: none;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+.proto-flow-row-value {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.proto-flow-entry-foot {
+  margin-top: 10px;
+  font-size: 10px;
+  line-height: 15px;
+  color: var(--ink-muted);
+}
+
+/* The card before there's an entry to link to: laid over the finished one until it's created. */
+.proto-flow-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  text-align: center;
+  color: var(--ink-muted);
+  background: var(--surface);
+  outline: 1px dashed var(--ink-muted);
+  outline-offset: -1px;
+  opacity: 0;
+}
+
+.proto-flow-chip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px;
+  font-size: 10px;
+  line-height: 15px;
+  white-space: nowrap;
+  color: rgb(255 255 255 / 0.7);
+  background: var(--ink);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.proto-flow-chip b {
+  font-weight: 500;
+  color: var(--bg);
+}
+
+/* The pointer's tip is its origin, so it lands (and presses) exactly on the target. */
+.proto-flow-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: 14px;
+  height: 19px;
+  fill: var(--ink);
+  stroke: var(--bg);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  transform-origin: 0 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Captions under the board: the current beat's rule inks in, like the nav's current item. */
+.proto-flow-captions {
+  margin-top: 56px;
+}
+
+.proto-flow-steps {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: proto-flow-step;
+}
+
+@container (min-width: 816px) {
+  .proto-flow-steps {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+  }
+}
+
+.proto-flow-step {
+  counter-increment: proto-flow-step;
+  padding-top: 10px;
+  border-top: 1px solid var(--media);
+  transition: border-color 0.4s ease;
+}
+
+.proto-flow-step[data-active] {
+  border-top-color: var(--ink);
+}
+
+.proto-flow-step-title {
+  display: block;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: 500;
+  color: var(--ink-muted);
+  transition: color 0.4s ease;
+}
+
+.proto-flow-step-title::before {
+  content: counter(proto-flow-step, decimal-leading-zero) '\2002';
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.proto-flow-step[data-active] .proto-flow-step-title {
+  color: var(--ink);
+}
+
+.proto-flow-step-note {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+.proto-flow-replay {
+  margin-top: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: #b8b8b8;
+  cursor: pointer;
+  transition: text-decoration-color 0.3s ease;
+}
+
+.proto-flow-replay:hover {
+  text-decoration-color: currentColor;
+}
+
+/* Served state while it plays: entry empty, nothing sent. "measure" is the same with the arrival
+   offset lifted, for the one synchronous pass where LinkFlow aims each chip at its row. */
+.proto-flow[data-anim='pending'] [data-row],
+.proto-flow[data-anim='measure'] [data-row],
+.proto-flow[data-anim='pending'] [data-value],
+.proto-flow[data-anim='measure'] [data-value] {
+  opacity: 0;
+}
+
+.proto-flow[data-anim='pending'] [data-row] {
+  transform: translateY(14px);
+}
+
+.proto-flow[data-anim='pending'] [data-empty],
+.proto-flow[data-anim='measure'] [data-empty],
+.proto-flow[data-anim='pending'] [data-ghost],
+.proto-flow[data-anim='measure'] [data-ghost] {
+  opacity: 1;
+}
+
+.proto-flow[data-anim='pending'] [data-leg][data-linked] .proto-flow-linked {
+  opacity: 1;
+}
+
+/* An unfilled row is present but unlit, so the entry reads as slots waiting on data. */
+.proto-flow[data-anim='pending'] [data-field-row],
+.proto-flow[data-anim='measure'] [data-field-row] {
+  opacity: 0.42;
+  transition: opacity 0.22s ease;
+}
+
+.proto-flow[data-anim='pending'] [data-field-row][data-filled] {
+  opacity: 1;
+}
+
+/* ```variants: the passes along a strip that bleeds to the stage's edges. Subgrid lines up the
+   label / modal / note bands across modals of different heights. */
+.proto-variants {
+  padding-inline: 0;
+}
+
+.proto-variants-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-template-rows: auto auto auto;
+  justify-content: safe center;
+  column-gap: 28px;
+  row-gap: 12px;
+  width: 100%;
+  padding: 8px 48px 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+}
+
+.proto-variants-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.proto-variant {
+  display: grid;
+  grid-row: 1 / -1;
+  grid-template-rows: subgrid;
+  align-content: start;
+  width: max-content;
+}
+
+/* Top of its band, not stretched to the tallest modal's height. */
+.proto-variant .ff-card {
+  align-self: start;
+}
+
+.proto-variant-label {
+  display: flex;
+  gap: 8px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: 500;
+}
+
+.proto-variant-index {
+  font-weight: 400;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Out of the cell's sizing (width: 0) and then filling it, so the modal alone sets the width. */
+.proto-variant-note {
+  align-self: start;
+  width: 0;
+  min-width: 100%;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+/* Grab the strip and pull it sideways (VariantStrip); the cards' own buttons keep their pointer. */
+.proto-variants-strip {
+  cursor: grab;
+}
+
+.proto-variants-strip[data-pulling] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* The puller: a handle on a 2px line (the home reel's progress-line weight), sized like a
+   scrollbar thumb so its length says how much of the strip is in view. */
+.proto-puller {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 360px);
+  margin-top: 32px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.proto-puller-track {
+  position: relative;
+  flex: 1;
+  height: 24px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.proto-puller-track::before {
+  content: '';
+  position: absolute;
+  inset: 11px 0;
+  background: var(--media);
+}
+
+.proto-puller-thumb {
+  position: absolute;
+  top: 11px;
+  height: 2px;
+  background: var(--ink);
+  cursor: grab;
+  transition:
+    top 0.3s var(--proto-ease),
+    height 0.3s var(--proto-ease);
+}
+
+/* Thickens under the pointer, so it reads as something to take hold of. */
+.proto-puller-track:hover .proto-puller-thumb,
+.proto-puller-track[data-pulling] .proto-puller-thumb {
+  top: 9px;
+  height: 6px;
+}
+
+.proto-puller-track[data-pulling],
+.proto-puller-track[data-pulling] .proto-puller-thumb {
+  cursor: grabbing;
+}
+
+.proto-puller-track:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ```submenu: one card, with room below for the picker that opens past its bottom edge. */
+.proto-submenu {
+  padding-bottom: 136px;
+}
+
+/* ```logbook-compare: the first pass and the final, side by side once there's room for both. */
+.proto-compare {
+  display: grid;
+  gap: 48px;
+  justify-items: center;
+  width: 100%;
+  max-width: 960px;
+}
+
+@container (min-width: 976px) {
+  .proto-compare {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.proto-compare-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.proto-compare-label {
+  display: flex;
+  align-items: center;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  color: var(--ink-muted);
+}
+
+/* The current design gets the nav's current-item dash. */
+.proto-compare-label[data-current] {
+  color: var(--ink);
+}
+
+.proto-compare-label[data-current]::before {
+  content: '';
+  width: 12px;
+  height: 1px;
+  margin-right: 5px;
+  background: currentColor;
+}
+
+/* ---- ForeFlight mock-ups ----
+   The product's own UI, kept as designed: these are the work being shown, so they keep
+   ForeFlight's palette and rounded corners rather than the portfolio's. Sizes are the Figma
+   numbers times --s, so the proportions are the file's at a size that can be read. */
+
+/* Logbook Link (```variants and ```submenu): 168px wide in the file, 127px for the narrow passes. */
+.ff-card {
+  --s: 1.9;
+  --w: 168;
+  width: calc(var(--w) * var(--s) * 1px);
+  border-radius: calc(8 * var(--s) * 1px);
+  background: #fdfefc;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgb(24 55 73 / 10%),
+    0 10px 24px -12px rgb(24 55 73 / 35%);
+  transition:
+    transform 0.4s var(--proto-ease),
+    box-shadow 0.4s var(--proto-ease),
+    opacity 0.4s var(--proto-ease);
+}
+
+.ff-card[data-narrow] {
+  --w: 127;
+}
+
+@container (max-width: 656px) {
+  .ff-card {
+    --s: 1.55;
+  }
+}
+
+.ff-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 2px 4px rgb(24 55 73 / 12%),
+    0 18px 34px -14px rgb(24 55 73 / 42%);
+}
+
+/* Dismissed: gone for a beat, so × reads as the control it is. It comes back on its own. */
+.ff-card[data-state='dismissed'] {
+  transform: scale(0.96);
+  opacity: 0.18;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.ff-card-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12 * var(--s) * 1px);
+  height: calc(36 * var(--s) * 1px);
+  padding-inline: calc(11 * var(--s) * 1px);
+  background: #183749;
+}
+
+.ff-card-title {
+  font-size: calc(11 * var(--s) * 1px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.ff-card-close {
+  display: grid;
+  place-items: center;
+  width: calc(11 * var(--s) * 1px);
+  height: calc(11 * var(--s) * 1px);
+  padding: 0;
+  border: none;
+  background: none;
+  color: #97a6b9;
+  cursor: pointer;
+  transition:
+    color 0.4s var(--proto-ease),
+    transform 0.4s var(--proto-ease);
+}
+
+.ff-card-close svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ff-card-close:hover:not(:disabled),
+.ff-card-close:focus-visible:not(:disabled) {
+  color: #fff;
+  transform: scale(1.12);
+}
+
+.ff-card-close:disabled {
+  cursor: default;
+}
+
+.ff-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(7 * var(--s) * 1px);
+  padding: calc(11 * var(--s) * 1px) calc(12 * var(--s) * 1px) calc(16 * var(--s) * 1px);
+  text-align: center;
+}
+
+.ff-card-glyphs {
+  display: flex;
+  align-items: center;
+  gap: calc(5 * var(--s) * 1px);
+  color: #050505;
+}
+
+/* Plane 15×12, book 16×16: different boxes, so side by side they read as two objects. */
+.ff-card-glyphs svg:first-child {
+  width: calc(15 * var(--s) * 1px);
+  height: calc(12 * var(--s) * 1px);
+}
+
+.ff-card-glyphs svg:last-child:not(:first-child) {
+  width: calc(16 * var(--s) * 1px);
+  height: calc(16 * var(--s) * 1px);
+}
+
+.ff-card-plus {
+  font-size: calc(10 * var(--s) * 1px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ff-card-route {
+  font-size: calc(11 * var(--s) * 1px);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #000;
+  white-space: nowrap;
+}
+
+.ff-card-rule {
+  width: calc(95 * var(--s) * 1px);
+  max-width: 100%;
+  height: 1px;
+  background: rgb(5 5 5 / 18%);
+}
+
+.ff-card-blurb {
+  max-width: calc(116 * var(--s) * 1px);
+  font-size: calc(6.4 * var(--s) * 1px);
+  line-height: 1.45;
+  color: #050505;
+}
+
+.ff-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(4 * var(--s) * 1px);
+  width: calc(76 * var(--s) * 1px);
+  margin-top: calc(4 * var(--s) * 1px);
+  padding-block: calc(6 * var(--s) * 1px);
+  font: inherit;
+  font-size: calc(6.4 * var(--s) * 1px);
+  color: #050505;
+  background: #d9d9d9;
+  border: none;
+  border-radius: calc(3 * var(--s) * 1px);
+  cursor: pointer;
+  transition:
+    background 0.4s var(--proto-ease),
+    transform 0.4s var(--proto-ease);
+}
+
+.ff-card-action:hover,
+.ff-card-action:focus-visible {
+  background: #c9cbcc;
+}
+
+.ff-card-action:active {
+  transform: scale(0.97);
+}
+
+.ff-card-action:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* What every pass resolves to, and the last pass's resting state. */
+.ff-card-confirm {
+  display: grid;
+  place-items: center;
+  width: calc(127 * var(--s) * 1px);
+  max-width: 100%;
+  height: calc(27 * var(--s) * 1px);
+  color: #74b776;
+  background: #e6fce7;
+  border-radius: calc(3 * var(--s) * 1px);
+}
+
+.ff-card-confirm svg {
+  width: calc(15 * var(--s) * 1px);
+  height: calc(15 * var(--s) * 1px);
+}
+
+.ff-card-confirm-note {
+  font-size: calc(6.4 * var(--s) * 1px);
+  line-height: 1.45;
+  color: #050505;
+}
+
+/* The submenu pass: the picker opens past the card's bottom edge, so the card can't clip its
+   overflow; the bar rounds its own top corners instead. */
+.ff-card--submenu {
+  overflow: visible;
+}
+
+.ff-card--submenu .ff-card-bar {
+  border-radius: calc(8 * var(--s) * 1px) calc(8 * var(--s) * 1px) 0 0;
+}
+
+/* Whichever of button / picker / confirmation is current. The button stays in the layout under
+   the open picker (hidden, not unmounted), so the card keeps its closed height. */
+.ff-submenu-action {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(7 * var(--s) * 1px);
+}
+
+.ff-submenu-action[data-open] .ff-card-action {
+  visibility: hidden;
+}
+
+.ff-submenu-link-icon {
+  width: calc(10 * var(--s) * 1px);
+  height: calc(10 * var(--s) * 1px);
+  transform: rotate(45deg);
+}
+
+/* The caret: the one cue, before a press, that this button opens a picker. */
+.ff-submenu-chevron {
+  width: calc(5.5 * var(--s) * 1px);
+  height: calc(3.7 * var(--s) * 1px);
+  color: #050505;
+  transition: transform 0.4s var(--proto-ease);
+}
+
+.ff-submenu-chevron[data-open] {
+  transform: rotate(180deg);
+}
+
+/* Opens on the button's own top edge (cancelling its margin) and wider, so it covers it. */
+.ff-submenu-panel {
+  position: absolute;
+  top: calc(4 * var(--s) * 1px);
+  left: 50%;
+  z-index: 3;
+  width: calc(104 * var(--s) * 1px);
+  padding: calc(6 * var(--s) * 1px) calc(7 * var(--s) * 1px);
+  background: #d9d9d9;
+  border-radius: calc(3 * var(--s) * 1px);
+  box-shadow:
+    0 1px 2px rgb(24 55 73 / 12%),
+    0 14px 28px -12px rgb(24 55 73 / 38%);
+  text-align: left;
+  transform: translateX(-50%);
+  animation: ff-submenu-in 0.16s var(--proto-ease);
+}
+
+@keyframes ff-submenu-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+/* One scrolling column, group labels included; five rows tall, as the file draws it. */
+.ff-submenu-scroll {
+  max-height: calc(67 * var(--s) * 1px);
+  padding-right: calc(6 * var(--s) * 1px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+.ff-submenu-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ff-submenu-track {
+  position: absolute;
+  top: calc(7 * var(--s) * 1px);
+  bottom: calc(7 * var(--s) * 1px);
+  right: calc(7 * var(--s) * 1px);
+  width: 1px;
+  background: #b2b2b2;
+}
+
+.ff-submenu-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #7c7c7c;
+}
+
+.ff-submenu-group + .ff-submenu-group {
+  margin-top: calc(6 * var(--s) * 1px);
+}
+
+/* Every row, header or track log, is 6px type over a hairline; only the colours separate them. */
+.ff-submenu-group-label,
+.ff-submenu-item {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: calc(2.5 * var(--s) * 1px) 0 calc(3 * var(--s) * 1px);
+  font: inherit;
+  font-size: calc(6 * var(--s) * 1px);
+  line-height: 1.2;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ff-submenu-group-label {
+  color: #424242;
+  border-bottom: 1px solid #424242;
+}
+
+.ff-submenu-item {
+  color: #7c7c7c;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgb(124 124 124 / 60%);
+  cursor: pointer;
+  transition:
+    color 0.4s var(--proto-ease),
+    background-color 0.4s var(--proto-ease);
+}
+
+.ff-submenu-group li:last-child .ff-submenu-item {
+  border-bottom: none;
+}
+
+.ff-submenu-item:hover,
+.ff-submenu-item:focus-visible {
+  color: #1e1e1e;
+  background: rgb(0 0 0 / 6%);
+}
+
+/* Add to Logbook (```logbook and ```logbook-compare): close to its real 327px, so --s is a nudge. */
+.ff-logbook {
+  --s: 1.2;
+  --ff-navy: #264653;
+  --ff-blue: #0a87b5;
+  --ff-green: #4f9a6b;
+  --ff-red: #d64545;
+  --ff-grey: #8a9296;
+  --ff-strip: #ecf1eb;
+  --ff-rule: #e2e4e1;
+  --ff-ink: #111;
+  --ff-slate: #43616a;
+  width: min(calc(327 * var(--s) * 1px), 100%);
+  border-radius: calc(6 * var(--s) * 1px);
+  background: #fff;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 6%),
+    0 18px 40px -16px rgb(0 0 0 / 40%);
+  transition:
+    transform 0.4s var(--proto-ease),
+    opacity 0.4s var(--proto-ease);
+}
+
+@container (max-width: 556px) {
+  .ff-logbook {
+    --s: 1;
+  }
+}
+
+.ff-logbook[data-state='dismissed'] {
+  transform: scale(0.97);
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.ff-logbook-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12 * var(--s) * 1px);
+  height: calc(47 * var(--s) * 1px);
+  padding-inline: calc(15 * var(--s) * 1px);
+  background: var(--ff-navy);
+}
+
+.ff-logbook-title {
+  font-size: calc(15 * var(--s) * 1px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.ff-logbook-close {
+  display: grid;
+  place-items: center;
+  width: calc(14 * var(--s) * 1px);
+  height: calc(14 * var(--s) * 1px);
+  padding: 0;
+  border: none;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  transition:
+    opacity 0.4s var(--proto-ease),
+    transform 0.4s var(--proto-ease);
+}
+
+.ff-logbook-close svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ff-logbook-close:hover,
+.ff-logbook-close:focus-visible {
+  transform: scale(1.12);
+  opacity: 0.8;
+}
+
+.ff-logbook-body {
+  padding: calc(16 * var(--s) * 1px) calc(17 * var(--s) * 1px) calc(13 * var(--s) * 1px);
+  color: var(--ff-ink);
+}
+
+.ff-logbook-heading {
+  font-size: calc(15 * var(--s) * 1px);
+  line-height: 1.25;
+}
+
+.ff-logbook-blurb {
+  margin-top: calc(7 * var(--s) * 1px);
+  font-size: calc(11.5 * var(--s) * 1px);
+  line-height: 1.5;
+}
+
+.ff-logbook-group {
+  padding: calc(7 * var(--s) * 1px) calc(14 * var(--s) * 1px);
+  font-size: calc(9 * var(--s) * 1px);
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ff-slate);
+  background: var(--ff-strip);
+  border-radius: calc(5 * var(--s) * 1px);
+}
+
+.ff-logbook-group--spaced {
+  margin-top: calc(15 * var(--s) * 1px);
+}
+
+.ff-logbook-group-block + .ff-logbook-group-block {
+  margin-top: calc(14 * var(--s) * 1px);
+}
+
+/* Final design: each group's label sticks to the top of the list while its own rows pass under
+   it (scoped to its group, so Recommended's label pushes Recent's out rather than stacking).
+   Above the rows' circles; the white ring covers the rows behind its rounded corners. */
+.ff-logbook-scroll .ff-logbook-group {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 0 0 calc(3 * var(--s) * 1px) #fff;
+}
+
+/* Recent and Recommended in one fixed-height scrolling list, four and a half rows tall: the
+   half row says "more below" on its own. The scrollbar is drawn from scrollTop. */
+.ff-logbook-scroll-wrap {
+  position: relative;
+  margin-top: calc(15 * var(--s) * 1px);
+}
+
+/* "More below": a shade along the list's bottom edge, shown while any of it is below the fold,
+   stopping short of the drawn scrollbar and never taking a press. */
+.ff-logbook-fade {
+  position: absolute;
+  left: 0;
+  right: calc(10 * var(--s) * 1px);
+  bottom: 0;
+  z-index: 3;
+  height: calc(22 * var(--s) * 1px);
+  background:
+    radial-gradient(ellipse 45% 70% at 50% 100%, rgb(17 17 17 / 12%), rgb(17 17 17 / 0%)),
+    linear-gradient(to top, rgb(17 17 17 / 9%), rgb(17 17 17 / 0%));
+  border-radius: 0 0 calc(5 * var(--s) * 1px) calc(5 * var(--s) * 1px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--proto-ease);
+}
+
+.ff-logbook-fade[data-visible] {
+  opacity: 1;
+}
+
+.ff-logbook-scroll {
+  max-height: calc(232 * var(--s) * 1px);
+  padding-right: calc(10 * var(--s) * 1px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+.ff-logbook-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ff-logbook-track {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  right: 0;
+  width: 3px;
+  background: var(--ff-rule);
+  border-radius: 4px;
+}
+
+.ff-logbook-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #9fb3ba;
+  border-radius: 4px;
+}
+
+.ff-logbook-row {
+  transition:
+    opacity 0.4s var(--proto-ease),
+    filter 0.4s var(--proto-ease);
+}
+
+.ff-logbook-row + .ff-logbook-row {
+  border-top: 1px solid var(--ff-rule);
+}
+
+/* Final design: a row entering (Create New Entry) or leaving (Delete). A one-track grid going
+   1fr ↔ 0fr, so it grows from nothing without being measured, while its content slides out from
+   behind the clip (a separate element: the pick's own padding would stop it reaching zero). */
+.ff-logbook-row:has(> .ff-logbook-row-clip) {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.4s var(--proto-ease);
+}
+
+.ff-logbook-row[data-collapsed] {
+  grid-template-rows: 0fr;
+}
+
+.ff-logbook-row-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ff-logbook-row-clip > .ff-logbook-pick {
+  transition:
+    background-color 0.4s var(--proto-ease),
+    opacity 0.4s var(--proto-ease),
+    transform 0.4s var(--proto-ease);
+}
+
+.ff-logbook-row[data-collapsed] .ff-logbook-pick {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
+/* First pass only: once a row is ticked, the rest fall back (still one press from being picked). */
+[data-active] > .ff-logbook-row:not([data-picked]) {
+  opacity: 0.4;
+  filter: grayscale(65%);
+}
+
+[data-active] > .ff-logbook-row:not([data-picked]):hover,
+[data-active] > .ff-logbook-row:not([data-picked]):has(:focus-visible) {
+  opacity: 0.75;
+  filter: grayscale(20%);
+}
+
+/* The row's control on the left, content in the middle, date and total pinned right. */
+.ff-logbook-pick {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: calc(11 * var(--s) * 1px);
+  padding: calc(11 * var(--s) * 1px) calc(4 * var(--s) * 1px);
+  transition: background-color 0.4s var(--proto-ease);
+}
+
+.ff-logbook-pick:hover {
+  background: rgb(10 135 181 / 5%);
+}
+
+/* The row a press selected, for Delete / Visit to act on: a deeper tint of the hover wash. */
+.ff-logbook-pick[data-selected] {
+  background: rgb(10 135 181 / 10%);
+}
+
+/* The select target is the route's own line, as a button whose ::after stretches over the whole
+   row, so a press anywhere but the circle (lifted above it) selects. line-height 0 so the button
+   adds no height of its own around the route. */
+.ff-logbook-select {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  line-height: 0;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.ff-logbook-select::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.ff-logbook-select:focus-visible {
+  outline: none;
+}
+
+.ff-logbook-select:focus-visible::after {
+  outline: 2px solid var(--ff-blue);
+  outline-offset: -2px;
+}
+
+.ff-logbook-check {
+  appearance: none;
+  position: relative;
+  width: calc(14 * var(--s) * 1px);
+  height: calc(14 * var(--s) * 1px);
+  margin: 0;
+  background: #fff;
+  border: 1.5px solid #2b2b2b;
+  border-radius: calc(2 * var(--s) * 1px);
+  cursor: pointer;
+  transition:
+    background-color 0.4s var(--proto-ease),
+    border-color 0.4s var(--proto-ease);
+}
+
+.ff-logbook-check:checked {
+  background: var(--ff-blue);
+  border-color: var(--ff-blue);
+}
+
+.ff-logbook-check:checked::after {
+  content: '';
+  position: absolute;
+  top: 8%;
+  left: 30%;
+  width: 28%;
+  height: 58%;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.ff-logbook-check:focus-visible {
+  outline: 2px solid var(--ff-blue);
+  outline-offset: 2px;
+}
+
+/* Lines spaced by their own top margins, not a gap: every final-design row keeps a collapsed tag
+   in it (so it can animate in), and a gap would still space that empty line out. */
+.ff-logbook-what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Pinned to the top, not centred, so a linked row's taller left column doesn't push the date off
+   the route's line; the date's line box is the route's, so the total starts where the tail does. */
+.ff-logbook-when {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: calc(2 * var(--s) * 1px);
+  text-align: right;
+}
+
+.ff-logbook-route,
+.ff-logbook-tail {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.ff-logbook-route {
+  font-size: calc(13 * var(--s) * 1px);
+  font-weight: 700;
+}
+
+.ff-logbook-tail {
+  margin-top: calc(2 * var(--s) * 1px);
+}
+
+.ff-logbook-tail,
+.ff-logbook-date,
+.ff-logbook-total {
+  font-size: calc(12 * var(--s) * 1px);
+  white-space: nowrap;
+}
+
+.ff-logbook-total {
+  line-height: 1.2;
+}
+
+/* The date is the row's one blue thing: in this system, the entry's own link. */
+.ff-logbook-date {
+  line-height: calc(13 * 1.2 * var(--s) * 1px);
+  color: var(--ff-blue);
+}
+
+/* The tag that says "Linked" in words, so the state doesn't rest on decoding an icon. Always in
+   the row; linking animates two things at once: the row growing to make room (a 0fr → 1fr track,
+   no measuring) and the words sliding down into it from behind the clip. Unlinking reverses both. */
+.ff-logbook-tag-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s var(--proto-ease);
+}
+
+.ff-logbook-tag-reveal[data-open] {
+  grid-template-rows: 1fr;
+}
+
+.ff-logbook-tag-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ff-logbook-tag {
+  display: grid;
+  overflow: hidden;
+  padding-top: calc(2 * var(--s) * 1px);
+  font-size: calc(10 * var(--s) * 1px);
+  font-weight: 700;
+  color: var(--ff-slate);
+  opacity: 0;
+  transform: translateY(-100%);
+  transition:
+    opacity 0.4s var(--proto-ease),
+    transform 0.4s var(--proto-ease);
+}
+
+.ff-logbook-tag-reveal[data-open] .ff-logbook-tag {
+  opacity: 1;
+  transform: none;
+}
+
+/* A created row's tag says "Just created" while it arrives, then flips to "Linked": both words
+   share one grid cell, the outgoing rolling up and out while the incoming rolls up into place. */
+.ff-logbook-tag-created,
+.ff-logbook-tag-linked {
+  grid-area: 1 / 1;
+  transition:
+    opacity 0.3s var(--proto-ease),
+    transform 0.3s var(--proto-ease);
+}
+
+.ff-logbook-tag[data-label='linked'] .ff-logbook-tag-created {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
+.ff-logbook-tag[data-label='created'] .ff-logbook-tag-linked {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+/* The row's own action, one circle in the checkbox's old spot, lifted over the row's select
+   stretch. link: a grey plus, an offer. connected: a broken chain on light red, visible at rest
+   (the link that's there, and what a press does to it); hover deepens it to full red. */
+.ff-logbook-row-action {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: calc(22 * var(--s) * 1px);
+  height: calc(22 * var(--s) * 1px);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    color 0.4s var(--proto-ease),
+    background-color 0.4s var(--proto-ease),
+    transform 0.4s var(--proto-ease);
+}
+
+.ff-logbook-row-action[data-variant='link'] {
+  color: #fff;
+  background: var(--ff-grey);
+}
+
+.ff-logbook-row-action[data-variant='link']:hover,
+.ff-logbook-row-action[data-variant='link']:focus-visible {
+  background: #6f7679;
+  transform: scale(1.08);
+}
+
+.ff-logbook-row-action[data-variant='connected'] {
+  color: var(--ff-red);
+  background: rgb(214 69 69 / 16%);
+}
+
+.ff-logbook-row-action[data-variant='connected']:hover,
+.ff-logbook-row-action[data-variant='connected']:focus-visible {
+  color: #fff;
+  background: var(--ff-red);
+  transform: scale(1.08);
+}
+
+/* Both marks stay in the button, stacked, so switching turns one into the other: the plus spins
+   a quarter turn and shrinks away as the chain spins in from the other side. */
+.ff-logbook-icon-plus,
+.ff-logbook-icon-unlink {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition:
+    opacity 0.4s var(--proto-ease),
+    transform 0.4s var(--proto-ease);
+}
+
+.ff-logbook-icon-plus svg {
+  width: 46%;
+  height: 46%;
+}
+
+/* The chain has more detail than the plus, so it's drawn a little larger in the same circle. */
+.ff-logbook-icon-unlink svg {
+  width: 58%;
+  height: 58%;
+}
+
+.ff-logbook-row-action[data-variant='connected'] .ff-logbook-icon-plus {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.4);
+}
+
+.ff-logbook-row-action[data-variant='link'] .ff-logbook-icon-unlink {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.4);
+}
+
+/* First pass only: Show More, and the primary it led to. */
+.ff-logbook-more {
+  display: block;
+  width: 100%;
+  padding: calc(13 * var(--s) * 1px) 0;
+  font: inherit;
+  font-size: calc(12.5 * var(--s) * 1px);
+  font-weight: 700;
+  color: var(--ff-blue);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--ff-rule);
+  cursor: pointer;
+}
+
+.ff-logbook-more:hover,
+.ff-logbook-more:focus-visible {
+  color: #075f7f;
+}
+
+.ff-logbook-primary,
+.ff-logbook-secondary {
+  display: block;
+  width: calc(100% - 38 * var(--s) * 1px);
+  margin-inline: auto;
+  padding-block: calc(8 * var(--s) * 1px);
+  font: inherit;
+  font-size: calc(13 * var(--s) * 1px);
+  font-weight: 700;
+  border: 1.5px solid var(--ff-blue);
+  border-radius: calc(4 * var(--s) * 1px);
+  cursor: pointer;
+  transition:
+    background-color 0.4s var(--proto-ease),
+    border-color 0.4s var(--proto-ease);
+}
+
+.ff-logbook-primary {
+  margin-top: calc(8 * var(--s) * 1px);
+  color: #fff;
+  background: var(--ff-blue);
+}
+
+.ff-logbook-primary:hover:not(:disabled),
+.ff-logbook-primary:focus-visible {
+  background: #0a769c;
+  border-color: #0a769c;
+}
+
+.ff-logbook-primary:disabled {
+  color: rgb(255 255 255 / 70%);
+  background: #9fb3ba;
+  border-color: #9fb3ba;
+  cursor: not-allowed;
+}
+
+.ff-logbook-secondary {
+  margin-top: calc(15 * var(--s) * 1px);
+  color: var(--ff-blue);
+  background: #fff;
+}
+
+.ff-logbook-secondary:hover:not(:disabled),
+.ff-logbook-secondary:focus-visible {
+  background: rgb(10 135 181 / 8%);
+}
+
+.ff-logbook-secondary:disabled {
+  color: rgb(10 135 181 / 45%);
+  border-color: rgb(10 135 181 / 45%);
+  cursor: not-allowed;
+}
+
+/* Final design: the selected row's actions under "Create New Entry". Two small buttons sized to
+   their labels, so they read as tools for one row rather than card-wide actions, opened by the
+   same 0fr → 1fr reveal as the rows and the tag. */
+.ff-logbook-actions-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s var(--proto-ease);
+}
+
+.ff-logbook-actions-reveal[data-open] {
+  grid-template-rows: 1fr;
+}
+
+.ff-logbook-actions-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ff-logbook-actions {
+  display: flex;
+  justify-content: center;
+  gap: calc(6 * var(--s) * 1px);
+  padding-top: calc(8 * var(--s) * 1px);
+  opacity: 0;
+  transform: translateY(-100%);
+  transition:
+    opacity 0.4s var(--proto-ease),
+    transform 0.4s var(--proto-ease);
+}
+
+.ff-logbook-actions-reveal[data-open] .ff-logbook-actions {
+  opacity: 1;
+  transform: none;
+}
+
+.ff-logbook-delete,
+.ff-logbook-open {
+  padding: calc(4 * var(--s) * 1px) calc(12 * var(--s) * 1px);
+  font: inherit;
+  font-size: calc(11 * var(--s) * 1px);
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1.5px solid;
+  border-radius: calc(4 * var(--s) * 1px);
+  cursor: pointer;
+  transition:
+    color 0.4s var(--proto-ease),
+    background-color 0.4s var(--proto-ease),
+    border-color 0.4s var(--proto-ease);
+}
+
+/* Outlined, so the destructive one of the pair isn't the louder one; it fills on hover. */
+.ff-logbook-delete {
+  color: var(--ff-red);
+  background: #fff;
+  border-color: var(--ff-red);
+}
+
+.ff-logbook-delete:hover,
+.ff-logbook-delete:focus-visible {
+  color: #fff;
+  background: var(--ff-red);
+}
+
+.ff-logbook-open {
+  display: grid;
+  overflow: hidden;
+  color: #fff;
+  background: var(--ff-blue);
+  border-color: var(--ff-blue);
+}
+
+.ff-logbook-open:hover,
+.ff-logbook-open:focus-visible {
+  background: #0a769c;
+  border-color: #0a769c;
+}
+
+/* "Visit" flips to "Opening…" the way the created tag flips to "Linked". */
+.ff-logbook-open-idle,
+.ff-logbook-open-busy {
+  grid-area: 1 / 1;
+  transition:
+    opacity 0.3s var(--proto-ease),
+    transform 0.3s var(--proto-ease);
+}
+
+.ff-logbook-open[data-label='open'] .ff-logbook-open-busy {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+.ff-logbook-open[data-label='opening'] .ff-logbook-open-idle {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
+/* First pass only: the confirmation that replaced the list after "Add to Logbook Entry". */
+.ff-logbook-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(6 * var(--s) * 1px);
+  margin-top: calc(18 * var(--s) * 1px);
+  padding: calc(20 * var(--s) * 1px) calc(14 * var(--s) * 1px);
+  text-align: center;
+  background: var(--ff-strip);
+  border-radius: calc(5 * var(--s) * 1px);
+}
+
+.ff-logbook-done-mark {
+  display: grid;
+  place-items: center;
+  width: calc(26 * var(--s) * 1px);
+  height: calc(26 * var(--s) * 1px);
+  color: #fff;
+  background: var(--ff-blue);
+  border-radius: 50%;
+}
+
+.ff-logbook-done-mark svg {
+  width: 62%;
+  height: 62%;
+}
+
+.ff-logbook-done-headline {
+  margin-top: calc(2 * var(--s) * 1px);
+  font-size: calc(13 * var(--s) * 1px);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.ff-logbook-done-note {
+  font-size: calc(12 * var(--s) * 1px);
+  line-height: 1.4;
+  color: var(--ff-slate);
+}
+
+@media (max-width: 899px) {
+  .proto-stage {
+    padding: 40px 16px;
+  }
+
+  .proto-variants {
+    padding-inline: 0;
+  }
+
+  /* On the same 16px edge as the copy. */
+  .study-proto--aside > .study-section-note {
+    padding-inline: 3px;
+  }
+
+  .proto-variants-strip {
+    padding-inline: 16px;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  }
+
+  .proto-submenu {
+    padding-bottom: 112px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Nothing played, so there's nothing to replay; every caption reads at full strength. */
+  .proto-flow-replay {
+    display: none;
+  }
+
+  .proto-flow-step-title {
+    color: var(--ink);
+  }
+
+  .ff-card:hover {
+    transform: none;
+  }
+
+  .ff-submenu-panel {
+    animation: none;
+  }
+
+  .proto-puller-thumb,
+  .ff-logbook-row:has(> .ff-logbook-row-clip),
+  .ff-logbook-row-clip > .ff-logbook-pick,
+  .ff-logbook-fade,
+  .ff-logbook-tag-reveal,
+  .ff-logbook-tag,
+  .ff-logbook-tag-created,
+  .ff-logbook-tag-linked,
+  .ff-logbook-row-action,
+  .ff-logbook-icon-plus,
+  .ff-logbook-icon-unlink,
+  .ff-logbook-actions-reveal,
+  .ff-logbook-actions,
+  .ff-logbook-open-idle,
+  .ff-logbook-open-busy {
+    transition: none;
+  }
+
+  .ff-logbook-row-action[data-variant]:hover,
+  .ff-logbook-row-action[data-variant]:focus-visible {
+    transform: none;
+  }
 }
 
 /* ---------- Recruiter page (/recruiter) ---------- */
@@ -1747,12 +3827,19 @@ a {
     background: var(--surface);
   }
 
+  .layout-site .sidebar-contact {
+    order: 1;
+    padding-top: 24px;
+    background: var(--surface);
+  }
+
   .layout-site .sidebar-footer {
     order: 1;
   }
 
   /* Phones: every sidebar block sits on the same 16px edges as the case study cards. */
   .sidebar .intro,
+  .sidebar-contact .intro-status,
   .sidebar-links,
   .site-nav,
   .sidebar-footer {

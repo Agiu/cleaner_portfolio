@@ -34,6 +34,11 @@ type SceneCtx = {
 type Scene = {
   /** One sentence on the project, shown bottom left while its scene plays. */
   description: string
+  /**
+   * Heavy setup, done a slice at a time in idle moments after load: works while `more()` says
+   * there's time, and returns true once it's all done.
+   */
+  prepare?: (more: () => boolean) => boolean
   draw: (s: SceneCtx) => void
 }
 
@@ -330,34 +335,61 @@ const foreflight: Scene = (() => {
   // strokes only the chunks in view, each faded by its distance from the plane.
   const STEP = 0.09, LEVEL_STEP = 0.1, LEVELS = 16, BANDS = 4, CHUNK = 0.8
   const NX = Math.round(LENGTH / STEP), NZ = Math.round((2 * WIDE) / STEP)
-  const hs: number[] = []
-  for (let j = 0; j <= NZ; j++) for (let i = 0; i <= NX; i++) hs.push(height(i * STEP, -WIDE + j * STEP))
   const CHUNKS = Math.ceil(LENGTH / CHUNK)
   const bins: number[][][][] = Array.from({ length: LEVELS }, () =>
     Array.from({ length: BANDS }, () => Array.from({ length: CHUNKS }, () => [])),
   )
-  for (let li = 0; li < LEVELS; li++) {
-    const L = (li + 0.5) * LEVEL_STEP
+  // Built a row at a time in idle moments after load (see prepare), so it never holds up the
+  // page; this scene's turn comes round long after it's done. It allocates nothing per cell, and
+  // each cell only visits the levels that actually cross it (most cross none or one).
+  const build = (function* () {
+    const hs = new Float64Array((NX + 1) * (NZ + 1))
+    for (let j = 0; j <= NZ; j++) {
+      for (let i = 0; i <= NX; i++) hs[j * (NX + 1) + i] = height(i * STEP, -WIDE + j * STEP)
+      yield
+    }
+    const hx = [0, 0, 0, 0], hz = [0, 0, 0, 0]
     for (let j = 0; j < NZ; j++) {
       for (let i = 0; i < NX; i++) {
-        const c = [hs[j * (NX + 1) + i], hs[j * (NX + 1) + i + 1], hs[(j + 1) * (NX + 1) + i + 1], hs[(j + 1) * (NX + 1) + i]]
-        const pos: Pt[] = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]]
-        const hits: Pt[] = []
-        for (let e = 0; e < 4; e++) {
-          const a = c[e], b = c[(e + 1) % 4]
-          if (a < L !== b < L) {
-            const u = (L - a) / (b - a), pa = pos[e], pb = pos[(e + 1) % 4]
-            hits.push([(pa[0] + (pb[0] - pa[0]) * u) * STEP, -WIDE + (pa[1] + (pb[1] - pa[1]) * u) * STEP])
+        // Corners clockwise from (i, j); edge e runs from corner e to corner e + 1.
+        const c0 = hs[j * (NX + 1) + i], c1 = hs[j * (NX + 1) + i + 1], c2 = hs[(j + 1) * (NX + 1) + i + 1], c3 = hs[(j + 1) * (NX + 1) + i]
+        const lo = Math.min(c0, c1, c2, c3), hi = Math.max(c0, c1, c2, c3)
+        for (let li = Math.max(0, Math.floor(lo / LEVEL_STEP - 0.5)); li < LEVELS; li++) {
+          const L = (li + 0.5) * LEVEL_STEP
+          if (L > hi) break
+          if (L <= lo) continue
+          let n = 0
+          if (c0 < L !== c1 < L) {
+            hx[n] = i + (L - c0) / (c1 - c0)
+            hz[n++] = j
+          }
+          if (c1 < L !== c2 < L) {
+            hx[n] = i + 1
+            hz[n++] = j + (L - c1) / (c2 - c1)
+          }
+          if (c2 < L !== c3 < L) {
+            hx[n] = i + 1 - (L - c2) / (c3 - c2)
+            hz[n++] = j + 1
+          }
+          if (c3 < L !== c0 < L) {
+            hx[n] = i
+            hz[n++] = j + 1 - (L - c3) / (c0 - c3)
+          }
+          for (let k = 0; k + 1 < n; k += 2) {
+            const x0 = hx[k] * STEP, z0 = -WIDE + hz[k] * STEP, x1 = hx[k + 1] * STEP, z1 = -WIDE + hz[k + 1] * STEP
+            const band = Math.min(BANDS - 1, Math.floor(clamp01((Math.abs((z0 + z1) / 2) / WIDE - 0.3) / 0.7) * BANDS))
+            const chunk = Math.min(CHUNKS - 1, Math.floor((x0 + x1) / 2 / CHUNK))
+            bins[li][band][chunk].push(x0, z0, x1, z1)
           }
         }
-        for (let k = 0; k + 1 < hits.length; k += 2) {
-          const [x0, z0] = hits[k], [x1, z1] = hits[k + 1]
-          const band = Math.min(BANDS - 1, Math.floor(clamp01((Math.abs((z0 + z1) / 2) / WIDE - 0.3) / 0.7) * BANDS))
-          const chunk = Math.min(CHUNKS - 1, Math.floor((x0 + x1) / 2 / CHUNK))
-          bins[li][band][chunk].push(x0, z0, x1, z1)
-        }
       }
+      yield
     }
+  })()
+  let built = false
+  const prepare = (more: () => boolean) => {
+    while (!built && more()) built = !!build.next().done
+    return built
   }
 
   // Cruise clear of everything on the route.
@@ -376,7 +408,10 @@ const foreflight: Scene = (() => {
 
   return {
     description: 'Under NDA: a system that links flight telemetry from ForeFlight’s Track Logs to pilots’ digital logbooks.',
+    prepare,
     draw: ({ ctx, box, t, reveal, col, pal }) => {
+      // Normally long done by now; if not (a jump straight here), finish it.
+      prepare(() => true)
       const cx = box.x + box.w / 2, cy = box.y + box.h / 2
       const ppu = Math.min(box.h * 0.2, box.w / 2 / 3.2)
       const scroll = START + SPEED * t
@@ -397,9 +432,12 @@ const foreflight: Scene = (() => {
       }
       /** Fades out towards the ends of the window, along the flight. */
       const along = (x: number) => Math.pow(1 - clamp01((Math.abs(x - scroll) - 0.3 * WINDOW) / (0.7 * WINDOW)), 1.6)
-      ctx.lineWidth = 1
-
-      // The land, drawing on from the valleys up; higher contours read brighter.
+      // The land, drawing on from the valleys up; higher contours read brighter. Its contours are
+      // hairlines, one device pixel wide at any pixel density (their alpha raised to match, so
+      // they carry the same light): Chrome strokes anything wider far more slowly, which held
+      // this scene to ~45fps on retina screens.
+      const T = ctx.getTransform(), devicePx = Math.hypot(T.a, T.b)
+      ctx.lineWidth = 1 / devicePx
       const c0 = Math.max(0, Math.floor((scroll - WINDOW) / CHUNK)), c1 = Math.min(CHUNKS - 1, Math.floor((scroll + WINDOW) / CHUNK))
       for (let li = 0; li < LEVELS; li++) {
         const on = clamp01(reveal * (LEVELS + 3) - li)
@@ -410,7 +448,7 @@ const foreflight: Scene = (() => {
           for (let ci = c0; ci <= c1; ci++) {
             const segs = bins[li][band][ci]
             if (!segs.length) continue
-            const a = (0.22 + 0.45 * (li / LEVELS)) * across * along((ci + 0.5) * CHUNK) * on
+            const a = Math.min(1, (0.22 + 0.45 * (li / LEVELS)) * across * along((ci + 0.5) * CHUNK) * on * devicePx)
             if (a <= 0.005) continue
             ctx.beginPath()
             for (let k = 0; k < segs.length; k += 4) {
@@ -423,6 +461,7 @@ const foreflight: Scene = (() => {
           }
         }
       }
+      ctx.lineWidth = 1
 
       // The route on the ground, dotted, as it would be on a chart.
       const ground: V3[] = []
@@ -953,6 +992,10 @@ const projectOpen: Scene = (() => {
   const FLY_OUT = 0.07, FLY_IN = 0.06
   /** How fast a jolt dies away (per unit of p; ~0.4s). */
   const DECAY = 55
+  /** Steps batched lines' tint and alpha are rounded to, so they can share a stroke. */
+  const TINT_STEPS = 32, ALPHA_STEPS = 128
+  /** Scratch space for one line's projected points. */
+  let xy = new Float64Array(512)
 
   const hash = (n: number) => {
     const x = Math.sin(n * 12.9898) * 43758.5453
@@ -1014,18 +1057,46 @@ const projectOpen: Scene = (() => {
         const y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp
         return [cx + x1 * ppu, cy - y2 * ppu, z2]
       }
-      const stroke = (n: number, at: (i: number) => V3, tint: number, a: number) => {
+      // Lines stroked separately build up brighter where they cross, which gives the piece its
+      // density, so anything that can overlap gets a stroke of its own. The model's lines within
+      // one slice never overlap each other, though, so those are gathered by colour and alpha
+      // (rounded to steps too fine to see) and stroked together as each slice ends (see flush).
+      const batches = new Map<number, Path2D>()
+      const stroke = (n: number, at: (i: number) => V3, tint: number, a: number, batch = false) => {
+        if (xy.length < n * 2) xy = new Float64Array(n * 2)
         let depth = 0
-        ctx.beginPath()
         for (let i = 0; i < n; i++) {
           const [X, Y, Z] = at(i)
-          i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)
+          xy[i * 2] = X
+          xy[i * 2 + 1] = Y
           depth += Z
         }
         // Depth cue: the near side reads brighter than the far side.
         const near = clamp01((depth / n + 1) / 2)
-        ctx.strokeStyle = col(mix(pal.hi, WHITE, Math.min(1, tint + 0.25 * near)), Math.min(1, (0.18 + 0.62 * near) * a))
-        ctx.stroke()
+        const tinted = Math.min(1, tint + 0.25 * near), alpha = Math.min(1, (0.18 + 0.62 * near) * a)
+        if (!batch) {
+          ctx.beginPath()
+          ctx.moveTo(xy[0], xy[1])
+          for (let i = 1; i < n; i++) ctx.lineTo(xy[i * 2], xy[i * 2 + 1])
+          ctx.strokeStyle = col(mix(pal.hi, WHITE, tinted), alpha)
+          ctx.stroke()
+          return
+        }
+        const alphaStep = Math.round(alpha * ALPHA_STEPS)
+        if (!alphaStep) return
+        const key = Math.round(tinted * TINT_STEPS) * (ALPHA_STEPS + 1) + alphaStep
+        let path = batches.get(key)
+        if (!path) batches.set(key, (path = new Path2D()))
+        path.moveTo(xy[0], xy[1])
+        for (let i = 1; i < n; i++) path.lineTo(xy[i * 2], xy[i * 2 + 1])
+      }
+      const flush = () => {
+        batches.forEach((path, key) => {
+          const tintStep = Math.floor(key / (ALPHA_STEPS + 1)), alphaStep = key % (ALPHA_STEPS + 1)
+          ctx.strokeStyle = col(mix(pal.hi, WHITE, tintStep / TINT_STEPS), alphaStep / ALPHA_STEPS)
+          ctx.stroke(path)
+        })
+        batches.clear()
       }
       ctx.lineWidth = 1
 
@@ -1046,15 +1117,22 @@ const projectOpen: Scene = (() => {
         // Draws on (and off, at the handoff) as a sweep through the slices, back to front.
         const FEATHER = 10
         const sweep = reveal * (model.slices + FEATHER)
+        // Lines come sorted by slice.
+        let slice = -1
         for (const line of model.lines) {
+          if (line.slice !== slice) {
+            flush()
+            slice = line.slice
+          }
           const on = clamp01((sweep - line.slice) / FEATHER)
           if (on <= 0) continue
           const q = line.pts
           // Each slice slips sideways by its own amount while the piece is jolted.
           const slip = (hash(line.slice) - 0.5) * 0.16 * hit
           const ox = shakeX + ACROSS[0] * slip, oy = shakeY + ACROSS[1] * slip, oz = ACROSS[2] * slip
-          stroke(q.length / 3, (i) => project(q[i * 3] + ox, q[i * 3 + 1] + oy, q[i * 3 + 2] + oz), 0.35 * Math.min(1, hit), on * (1 + 0.4 * hit))
+          stroke(q.length / 3, (i) => project(q[i * 3] + ox, q[i * 3 + 1] + oy, q[i * 3 + 2] + oz), 0.35 * Math.min(1, hit), on * (1 + 0.4 * hit), true)
         }
+        flush()
       }
 
       const labels: [string, number, number, number][] = []
@@ -1127,6 +1205,29 @@ export function createReel(canvas: HTMLCanvasElement, { bottomPad = 0 } = {}) {
   const modelReady = loadModel()
   let w = 0, h = 0, dpr = 1
 
+  // Scenes with heavy setup do it in idle moments, a slice at a time, well before their turn.
+  const setup = SCENES.filter((s) => s.prepare)
+  const whenIdle = (fn: (more: () => boolean) => void) =>
+    'requestIdleCallback' in window
+      ? requestIdleCallback((d) => fn(() => d.timeRemaining() > 2))
+      : setTimeout(() => {
+          const end = performance.now() + 6
+          fn(() => performance.now() < end)
+        }, 50)
+  const work = (more: () => boolean) => {
+    while (setup.length && setup[0].prepare!(more)) setup.shift()
+    if (setup.length) whenIdle(work)
+  }
+  if (setup.length) whenIdle(work)
+
+  // The dot grid is the same every frame, so it's drawn once into a layer of its own (redrawn
+  // when the size or palette changes); each frame copies it in and relights only the dots near
+  // the pointer.
+  const DOT_GAP = 22, DOT_ALPHA = 0.07, DOT_REACH = 150
+  const dots = document.createElement('canvas')
+  let dotsFor = ''
+  let dotsFill: CanvasPattern | null = null
+
   const col = (c: RGB, a = 1) => `rgba(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)},${a})`
 
   const drawScene = (scene: Scene, local: number, stage: Stage, pal: Palette) => {
@@ -1194,12 +1295,34 @@ export function createReel(canvas: HTMLCanvasElement, { bottomPad = 0 } = {}) {
 
       const m = Math.max(20, Math.min(36, w * 0.028))
       // Dot grid; dots near the pointer light up.
-      const gap = 22
-      for (let y = gap / 2; y < h; y += gap) {
-        for (let x = gap / 2; x < w; x += gap) {
-          const d = Math.hypot(x - pointer.x, y - pointer.y)
-          const a = 0.07 + 0.5 * Math.max(0, 1 - d / 150)
-          ctx.fillStyle = col(pal.hi, a)
+      const gap = DOT_GAP
+      const dotsKey = `${canvas.width}x${canvas.height}:${pal.hi}`
+      if (dotsKey !== dotsFor || !dotsFill) {
+        dotsFor = dotsKey
+        dots.width = canvas.width
+        dots.height = canvas.height
+        const dc = dots.getContext('2d')!
+        dc.setTransform(dpr, 0, 0, dpr, 0, 0)
+        dc.fillStyle = col(pal.hi, DOT_ALPHA)
+        for (let y = gap / 2; y < h; y += gap) for (let x = gap / 2; x < w; x += gap) dc.fillRect(x, y, 1, 1)
+        dotsFill = ctx.createPattern(dots, 'no-repeat')
+      }
+      // Laid in as a pattern fill, not drawImage: in Chrome, drawing a canvas into this one
+      // changes how every line drawn after it is antialiased.
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      if (dotsFill) {
+        ctx.fillStyle = dotsFill
+        ctx.fillRect(0, 0, dots.width, dots.height)
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      // A lit dot is drawn again over its resting self, at whatever alpha brings it up to its
+      // brightness.
+      const firstLit = (p: number) => gap / 2 + Math.max(0, Math.ceil((p - DOT_REACH - gap / 2) / gap)) * gap
+      for (let y = firstLit(pointer.y); y < h && y < pointer.y + DOT_REACH; y += gap) {
+        for (let x = firstLit(pointer.x); x < w && x < pointer.x + DOT_REACH; x += gap) {
+          const lit = 0.5 * Math.max(0, 1 - Math.hypot(x - pointer.x, y - pointer.y) / DOT_REACH)
+          if (lit <= 0) continue
+          ctx.fillStyle = col(pal.hi, 1 - (1 - DOT_ALPHA - lit) / (1 - DOT_ALPHA))
           ctx.fillRect(x, y, 1, 1)
         }
       }

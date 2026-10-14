@@ -100,9 +100,6 @@ export function Intro({ onHome }: { onHome?: (e: React.MouseEvent<HTMLAnchorElem
         <p className="intro-lead" data-split>
           {profile.bio}
         </p>
-        <p className="intro-status" data-split>
-          {profile.status}
-        </p>
       </div>
     </div>
   )
@@ -188,17 +185,23 @@ export function ArrowLink({
   )
 }
 
-export function SidebarLinks() {
+/** Where I'm based, then the Resume and LinkedIn links: sits at the foot of the sidebar. */
+export function SidebarContact() {
   const linkedin = profile.links.find((l) => l.label === 'Linkedin')!
   return (
-    <ul className="sidebar-links">
-      <li className="intro-fade">
-        <ArrowLink href="/recruiter" label="Resume" />
-      </li>
-      <li className="intro-fade">
-        <ArrowLink href={linkedin.href} label="LinkedIn" />
-      </li>
-    </ul>
+    <div className="sidebar-contact">
+      <p className="intro-status" data-split>
+        {profile.status}
+      </p>
+      <ul className="sidebar-links">
+        <li className="intro-fade">
+          <ArrowLink href="/recruiter" label="Resume" />
+        </li>
+        <li className="intro-fade">
+          <ArrowLink href={linkedin.href} label="LinkedIn" />
+        </li>
+      </ul>
+    </div>
   )
 }
 

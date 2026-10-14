@@ -7,50 +7,21 @@ import { ArrowLink } from './Profile'
 
 /*
  * Home header: a looping motion-graphic reel of the work (see lib/workReel.ts), in black and
- * white, with a soft glow behind it that's lit by whatever is on screen.
+ * white.
  */
 
 /** The header is black and white: a near-black ground, white linework, one grey between. */
 const HEADER_BG = '#010101'
 const PALETTE: Palette = { lo: [1 / 255, 1 / 255, 1 / 255], mid: [0x7a / 255, 0x7a / 255, 0x7a / 255], hi: [1, 1, 1] }
 
-/** How strong the halo behind the header is. */
-const GLOW_OPACITY = 0.7
-
 // Kept outside the component so a remount (React's dev double-mount, or coming back to Work)
 // continues the reel where it was instead of restarting it and replaying the entrance.
 let reelClock = 0
 let entrancePlayed = false
 
-/**
- * Turns the glow into light rather than shadow: each pixel's alpha follows its brightness, so
- * dark areas of the header emit nothing (the page stays pure white there) and only the lit,
- * coloured linework bleeds out. Runs on a 48x16 copy, so it's a few hundred pixels a frame.
- */
-function lightOnly(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  const img = ctx.getImageData(0, 0, w, h)
-  const d = img.data
-  for (let i = 0; i < d.length; i += 4) {
-    const r = d[i], g = d[i + 1], b = d[i + 2]
-    const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
-    // Near-black emits nothing; ramps to full by ~55% brightness.
-    const a = Math.min(1, Math.max(0, (luma - 0.12) / 0.43))
-    // Light, never shadow: push the colour to full brightness, keeping its hue. Dim greys (white
-    // text averaged with the dark ground) become white and vanish into the page; dim orange
-    // becomes orange light.
-    const peak = Math.max(r, g, b, 1)
-    d[i] = (r / peak) * 255
-    d[i + 1] = (g / peak) * 255
-    d[i + 2] = (b / peak) * 255
-    d[i + 3] = Math.round(Math.pow(a, 1.3) * 255)
-  }
-  ctx.putImageData(img, 0, 0)
-}
-
 export function HomeHeader() {
   const root = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
-  const glow = useRef<HTMLCanvasElement>(null)
   const cta = useRef<HTMLDivElement>(null)
   const bar = useRef<HTMLDivElement>(null)
   // Set once the reel is up: pressing a progress segment jumps to that slide.
@@ -70,12 +41,6 @@ export function HomeHeader() {
       const cv = canvas.current!
       const reel = createReel(cv)
       if (!reel) return
-      // Glow: each frame is copied into a tiny canvas behind the header, scaled up and blurred
-      // in CSS, so the halo carries the reel's live colours and movement.
-      const glowCv = glow.current!
-      const glowCtx = glowCv.getContext('2d', { willReadFrequently: true })
-      glowCv.width = 48
-      glowCv.height = 16
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
       const pointer = { x: -9999, y: -9999 }
@@ -108,14 +73,7 @@ export function HomeHeader() {
         }
       }
 
-      const render = () => {
-        place(reel.draw(reelClock, PALETTE, pointer))
-        if (glowCtx) {
-          glowCtx.clearRect(0, 0, glowCv.width, glowCv.height)
-          glowCtx.drawImage(cv, 0, 0, glowCv.width, glowCv.height)
-          lightOnly(glowCtx, glowCv.width, glowCv.height)
-        }
-      }
+      const render = () => place(reel.draw(reelClock, PALETTE, pointer))
 
       const resize = () => {
         const r = el.getBoundingClientRect()
@@ -162,7 +120,6 @@ export function HomeHeader() {
         reelClock = STILL_TIME
         render()
         gsap.set(el, { autoAlpha: 1 })
-        gsap.set(glowCv, { autoAlpha: GLOW_OPACITY })
         return teardown
       }
 
@@ -201,16 +158,23 @@ export function HomeHeader() {
         }
       })
 
+      // On high-refresh screens the reel draws every other (or every few) ticks, so it runs at 60fps
+      // or a little over rather than 120-240: it looks the same and costs a fraction as much. The
+      // clock still advances every tick. frameMs is a running average of the screen's frame time.
+      let frameMs = 1000 / 60
+      let frame = 0
       const tick = (_time: number, dt: number) => {
         if (!visible || faded) return
-        reelClock += Math.min(dt, 100) / 1000
-        render()
+        const step = Math.min(dt, 100)
+        reelClock += step / 1000
+        frameMs += (step - frameMs) * 0.05
+        const every = Math.max(1, Math.floor(1000 / 60 / frameMs + 0.1))
+        if (++frame % every === 0) render()
       }
       gsap.ticker.add(tick)
 
       if (entrancePlayed) {
         gsap.set(el, { autoAlpha: 1 })
-        gsap.set(glowCv, { autoAlpha: GLOW_OPACITY })
       } else {
         gsap.fromTo(
           el,
@@ -226,10 +190,6 @@ export function HomeHeader() {
             },
           },
         )
-        // On phones the glow spills behind the name below the header, so it's simply there;
-        // on desktop it fades up with the header.
-        if (window.matchMedia('(max-width: 899px)').matches) gsap.set(glowCv, { autoAlpha: GLOW_OPACITY })
-        else gsap.fromTo(glowCv, { autoAlpha: 0 }, { autoAlpha: GLOW_OPACITY, duration: 1.6, delay: 0.4, ease: 'power2.out' })
       }
 
       return () => {
@@ -244,7 +204,6 @@ export function HomeHeader() {
 
   return (
     <div className="hh-wrap">
-      <canvas ref={glow} className="hh-glow" aria-hidden="true" />
       <div ref={root} className="home-header" style={{ backgroundColor: HEADER_BG }}>
         <canvas
           ref={canvas}

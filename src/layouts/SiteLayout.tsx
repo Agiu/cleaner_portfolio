@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import divider from '../assets/divider.svg'
 import { HomeHeader } from '../components/HomeHeader'
-import { Intro, SidebarFooter, SidebarLinks } from '../components/Profile'
+import { Intro, SidebarContact, SidebarFooter } from '../components/Profile'
 import { gsap, useGSAP } from '../lib/gsap'
 import { fadeInPage, fadeOutPage } from '../lib/pageTransition'
 import { useIntro } from '../lib/useIntro'
@@ -129,7 +129,6 @@ export function SiteLayout() {
             </Link>
           </div>
           <Intro onHome={(e) => go(e, '/')} />
-          <SidebarLinks />
           <nav className="site-nav" aria-label="Primary">
             <ul>
               {NAV.map((item) => (
@@ -143,6 +142,7 @@ export function SiteLayout() {
             </ul>
           </nav>
         </div>
+        <SidebarContact />
         <SidebarFooter />
       </aside>
       <main ref={main} className="sidebar-main">
