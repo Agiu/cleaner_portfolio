@@ -10,7 +10,7 @@
                     a blank line between images starts a new row. Images can go anywhere
                     in a section, text continues below them.
   ![alt](/work/… "still 16/9")   row options: still = no parallax/crop, plus an aspect ratio
-  ```flow           an interactive prototype (stream, youtube, flow, variants, submenu,
+  ```flow           an interactive prototype (stream, youtube, errorbars, flow, variants, submenu,
   …                 logbook, logbook-compare); see src/components/blocks for each one's lines
   ```
   > Note            on the line straight after the fence (no blank line): sits beside the
@@ -58,9 +58,13 @@ NB2-N-zX2jw | unmute
 
 > Excuse my bad hair in this video. I moved directly from Australia to the United States and hadn’t had time to fix myself up. Perfect for a software engineering job though!
 
-![Error bar variants as seen in the demo video above](/work/foreflight/error-variants.jpg "still 1461/530")
+```errorbars
+caption: Error bar variants as seen in the demo video above
+```
 
-### Outcome
+## Error Bar Outcome
+
+> Small in scope, but the change people had been asking for.
 
 ==Since this was an internal improvement that people really wanted, many of the engineers and QA testers were praising this change, despite its size in the grand scheme of software at ForeFlight. This was my first collaboration with the people in product design; lots of great feedback came from these meetings I set up.==
 

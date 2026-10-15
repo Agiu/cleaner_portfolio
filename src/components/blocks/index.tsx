@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import { ContourModel } from './ContourModel'
+import { ErrorBars } from './ErrorBars'
 import { LinkFlow } from './LinkFlow'
 import { LinkSubmenu } from './LinkSubmenu'
 import { LogbookCompare } from './LogbookCompare'
@@ -30,6 +31,7 @@ const blocks: Record<string, { component: ComponentType<BlockProps>; wide: boole
   quotes: { component: QuoteGrid, wide: true },
   '3d-model': { component: ContourModel, wide: true },
   youtube: { component: YouTubeEmbed, wide: true },
+  errorbars: { component: ErrorBars, wide: true },
   flow: { component: LinkFlow, wide: true },
   variants: { component: VariantStrip, wide: true },
   submenu: { component: LinkSubmenu, wide: true, beside: true },

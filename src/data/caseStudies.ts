@@ -57,13 +57,31 @@ const audio = (f: string) => `https://media.kaelub.com/Audio/${f}`
 // from kaelub.com.
 const studies: Omit<CaseStudy, 'sections'>[] = [
   {
+    slug: 'wos',
+    title: 'Who Owns Seattle',
+    category: 'Data Visualization',
+    year: '2025',
+    summary: 'A data visualizer tracing property ownership in South Lake Union, block by block, over time.',
+    mediaSide: 'left',
+    mediaRatio: 593 / 1090,
+    image: 'https://media.kaelub.com/WOS/Cover.jpg',
+    links: [{ label: 'Live Site', href: 'https://kaelub.com/who' }],
+    outcomes: [
+      'Built a Python and JavaScript scraper for King County’s parcel viewer, since the ownership dataset is paywalled.',
+      'Automated parcel collection with Claude, turning two days of mapping South Lake Union into 30 minutes.',
+      'Designed and built a working prototype: a story site and an ownership map with a scrubbable timeline, live at /who.',
+    ],
+    team: [],
+    advisors: [],
+  },
+  {
     slug: 'xbox',
     title: 'Xbox Arcade',
     category: 'Product Design',
     year: '2026',
     summary:
       'A game-night decision tool that turned into a full cloud-gaming product, built with the head of design and director of research at Xbox.',
-    mediaSide: 'left',
+    mediaSide: 'right',
     mediaRatio: 615 / 1090,
     image: xbox('hero.jpg'),
     video: xbox('hero.mp4'), // the hook video from kaelub.com's home hero
@@ -81,11 +99,11 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
   {
     slug: 'foreflight',
     title: 'ForeFlight',
-    category: 'Software Engineering',
+    category: 'Design Engineering',
     year: '2024',
     summary:
       'A summer as a software engineer intern on the debrief team, most importantly building a data-heavy system that links flight telemetry to pilots’ logbooks.',
-    mediaSide: 'right',
+    mediaSide: 'left',
     mediaRatio: 593 / 1090,
     image: foreflight('hero.jpg'),
     outcomes: [
@@ -107,7 +125,7 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     year: '2025',
     summary:
       'Project Open is an audio form factor designed to improve the shortcomings of current headphones and earphones.',
-    mediaSide: 'left',
+    mediaSide: 'right',
     mediaRatio: 593 / 1090,
     image: audio('image_placeholder_8.png'),
     video: 'https://media.kaelub.com/%20headphones_background_v1%20(2160p).mp4',
@@ -126,7 +144,7 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     year: '2024',
     summary:
       'Recentering Trinity.edu’s school and program pages around everyone who uses the site.',
-    mediaSide: 'right',
+    mediaSide: 'left',
     mediaRatio: 615 / 1090,
     image: 'https://media.kaelub.com/Trinity-Redesign/Hero.jpg',
     inkShadow: true, // the title sits over the mockup's white page
@@ -137,24 +155,6 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     ],
     team: ['Caleb Aguiar'],
     advisors: [{ name: 'Steph Enoch', role: 'Director' }],
-  },
-  {
-    slug: 'wos',
-    title: 'Who Owns Seattle',
-    category: 'Data Visualization',
-    year: '2025',
-    summary: 'A data visualizer tracing property ownership in South Lake Union, block by block, over time.',
-    mediaSide: 'left',
-    mediaRatio: 593 / 1090,
-    image: 'https://media.kaelub.com/WOS/Cover.jpg',
-    links: [{ label: 'Live Site', href: 'https://kaelub.com/who' }],
-    outcomes: [
-      'Built a Python and JavaScript scraper for King County’s parcel viewer, since the ownership dataset is paywalled.',
-      'Automated parcel collection with Claude, turning two days of mapping South Lake Union into 30 minutes.',
-      'Designed and built a working prototype: a story site and an ownership map with a scrubbable timeline, live at /who.',
-    ],
-    team: [],
-    advisors: [],
   },
   {
     slug: 'occluded',

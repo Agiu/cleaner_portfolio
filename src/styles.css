@@ -785,6 +785,305 @@ a {
   display: block;
 }
 
+/* ---------- The Work page's closing plate (WorkEnd): a spec sheet in the header reel's black,
+   white and one grey, bookending the reel at the top of the page ---------- */
+
+.work-end {
+  --we-bg: #010101;
+  --we-ink: #ffffff;
+  --we-mid: #7a7a7a;
+  --we-rule: rgb(255 255 255 / 0.32);
+  position: relative;
+  margin-top: 96px;
+  padding: 22px 28px 26px;
+  background: var(--we-bg);
+  color: var(--we-ink);
+  container-type: inline-size;
+  font: 500 11px/1.4 ui-monospace, Menlo, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Registration marks in the corners, like a print sheet's. */
+.we-reg {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
+}
+
+.we-reg::before,
+.we-reg::after {
+  content: '';
+  position: absolute;
+  background: var(--we-mid);
+}
+
+.we-reg::before {
+  left: 4px;
+  width: 1px;
+  height: 100%;
+}
+
+.we-reg::after {
+  top: 4px;
+  width: 100%;
+  height: 1px;
+}
+
+.we-reg--tl { top: 7px; left: 7px; }
+.we-reg--tr { top: 7px; right: 7px; }
+.we-reg--bl { bottom: 7px; left: 7px; }
+.we-reg--br { bottom: 7px; right: 7px; }
+
+.we-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--we-rule);
+}
+
+.we-bar h2 {
+  margin: 0;
+  font: inherit;
+}
+
+.we-bar > span {
+  color: var(--we-mid);
+}
+
+.we-body {
+  display: grid;
+  gap: 28px;
+  align-items: center;
+  padding: 28px 0 32px;
+}
+
+@container (min-width: 820px) {
+  .we-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 48px;
+  }
+}
+
+/* ---- The two-block mark ---- */
+
+.we-mark {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.we-dot {
+  fill: var(--we-mid);
+}
+
+.we-grid {
+  opacity: 0.45;
+}
+
+.we-fill {
+  fill: var(--we-ink);
+}
+
+.we-outline,
+.we-ghost-line {
+  fill: none;
+  stroke: var(--we-ink);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.we-mark line {
+  stroke: var(--we-mid);
+  stroke-width: 1;
+}
+
+.we-mark text {
+  fill: var(--we-mid);
+  font: 500 8px ui-monospace, Menlo, monospace;
+  letter-spacing: 0.04em;
+}
+
+.we-mark .we-read {
+  fill: var(--we-ink);
+}
+
+/* ---- The index ---- */
+
+.we-index-head,
+.we-row a {
+  display: grid;
+  grid-template-columns: 4ch minmax(0, 1fr) auto 5ch;
+  gap: 16px;
+  padding: 8px 8px;
+}
+
+.we-index-head {
+  border-top: 2px solid var(--we-ink);
+  border-bottom: 1px solid var(--we-rule);
+  color: var(--we-mid);
+}
+
+.we-index ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.we-row {
+  border-bottom: 1px solid var(--we-rule);
+}
+
+.we-row a {
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.we-row a span:last-child {
+  text-align: right;
+}
+
+.we-index-head span:last-child {
+  text-align: right;
+}
+
+.we-col-num,
+.we-row .we-col-discipline {
+  color: var(--we-mid);
+  transition: color 0.18s ease;
+}
+
+.we-row a:hover,
+.we-row a:focus-visible {
+  background: var(--we-ink);
+  color: var(--we-bg);
+  outline: none;
+}
+
+.we-row a:hover span,
+.we-row a:focus-visible span {
+  color: inherit;
+}
+
+@container (max-width: 520px) {
+  .we-index-head,
+  .we-row a {
+    grid-template-columns: 3ch minmax(0, 1fr) 5ch;
+  }
+
+  .we-col-discipline {
+    display: none;
+  }
+}
+
+/* ---- The foot: the reel's progress bar, the credit, and the stamp over the closing rule ---- */
+
+.we-foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 24px;
+  padding-top: 14px;
+  padding-right: 120px; /* clear of the stamp */
+  border-top: 1px solid var(--we-rule);
+}
+
+.we-reel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+/* Narrow: the progress bar over the credit, both clear of the stamp. */
+@container (max-width: 520px) {
+  .we-foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 72px;
+  }
+}
+
+.we-segs {
+  display: flex;
+  gap: 3px;
+}
+
+.we-seg {
+  width: 18px;
+  height: 2px;
+  background: rgb(255 255 255 / 0.2);
+}
+
+.we-seg i {
+  display: block;
+  height: 100%;
+  background: var(--we-ink);
+  transform-origin: left center;
+}
+
+.we-credit {
+  color: var(--we-mid);
+}
+
+.we-stamp {
+  --end-stamp-ground: var(--we-bg);
+  position: absolute;
+  right: 0;
+  bottom: -8px;
+  width: 104px;
+  height: 104px;
+}
+
+/* ---- The stamp (EndStamp): the reel's line art in the colour it sits in ---- */
+
+.end-stamp {
+  display: block;
+  overflow: visible;
+  transform: rotate(-8deg);
+}
+
+.end-stamp-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.end-stamp-fill {
+  fill: currentColor;
+}
+
+.end-stamp-grid {
+  opacity: 0.35;
+}
+
+.end-stamp-route {
+  opacity: 0.6;
+}
+
+.end-stamp-check {
+  fill: none;
+  stroke: var(--end-stamp-ground, var(--bg));
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.end-stamp-ring-text {
+  font: 500 9.5px ui-monospace, Menlo, monospace;
+  letter-spacing: 0;
+  fill: currentColor;
+}
+
 .cs-compact-media {
   aspect-ratio: 16 / 10;
 }
@@ -1254,6 +1553,93 @@ a {
      (see expandToHero in pageTransition.ts) with no pop between the transition and the real page. */
   height: 100vh;
   height: 100svh;
+}
+
+/* ---------- Hero scene: Who Owns Seattle's opening at /who, its map turning (heroes/WosSite) ---------- */
+
+.wos-site {
+  --wos-paper: #f4f4f2;
+  --wos-pad: clamp(16px, 4cqw, 56px);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  container-type: size;
+  background: var(--wos-paper);
+  color: #1a1a19;
+}
+
+/* Doubled up to outrank maplibre's own .maplibregl-map { position: relative }. */
+.wos-site > .wos-site-map {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.wos-site-map.is-ready {
+  opacity: 1;
+}
+
+/* The site's paper fading the map out behind the copy, over a fine dot screen. */
+.wos-site-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, var(--wos-paper) 0%, rgb(244 244 242 / 0.88) 30%, rgb(244 244 242 / 0) 62%),
+    radial-gradient(circle, rgb(244 244 242 / 0.55) 0.9px, transparent 1.3px) 0 0 / 4px 4px;
+}
+
+.wos-site-copy {
+  position: absolute;
+  left: var(--wos-pad);
+  bottom: clamp(40px, 9cqh, 96px);
+  max-width: min(640px, calc(100% - 2 * var(--wos-pad)));
+}
+
+.wos-site-title {
+  display: block;
+  width: clamp(220px, 30cqw, 440px);
+  height: auto;
+}
+
+.wos-site-lede {
+  max-width: 34em;
+  margin-top: 24px;
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+.wos-site-lede a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: #e34948;
+  text-decoration-thickness: max(2px, 0.06em);
+  text-underline-offset: max(3px, 0.12em);
+}
+
+.wos-site-lede a:hover {
+  text-decoration-thickness: max(3px, 0.09em);
+}
+
+/* Narrow frames: the fade comes up from the bottom instead, under the copy. */
+@container (max-width: 960px) {
+  .wos-site-grain {
+    background:
+      linear-gradient(0deg, var(--wos-paper) 0%, rgb(244 244 242 / 0.92) 42%, rgb(244 244 242 / 0) 72%),
+      radial-gradient(circle, rgb(244 244 242 / 0.55) 0.9px, transparent 1.3px) 0 0 / 4px 4px;
+  }
+
+  .wos-site-lede {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wos-site-map {
+    transition: none;
+  }
 }
 
 /* ---------- Hero scene: autotroph games' site building itself in a window (heroes/AutotrophSite) ---------- */
@@ -1873,6 +2259,181 @@ a {
   width: 100%;
   height: 100%;
   border: 0;
+}
+
+/* ```errorbars: the nine error states straight on the page grey, in the image slot they
+   replaced, one family per column; a single column once the cards would be too narrow for the
+   bar's text. */
+.proto-errors {
+  --err-red: #d6292c;
+  --err-green: #2f9a3c;
+  --err-yellow: #f2c230;
+  --err-slant: 17px; /* the triangle bar's slanted end, parallel to the triangle's left edge */
+  max-width: 1461px;
+  container-type: inline-size;
+}
+
+.proto-errors-panel {
+  display: grid;
+  gap: 24px;
+  justify-items: center;
+  padding: 40px 24px;
+}
+
+.proto-errors-family {
+  display: grid;
+  gap: 24px;
+  width: 100%;
+  max-width: 400px;
+}
+
+@container (min-width: 1000px) {
+  .proto-errors-panel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: clamp(48px, 7.7cqw, 112px);
+    padding: clamp(40px, 4.1cqw, 60px);
+  }
+
+  .proto-errors-family {
+    gap: clamp(40px, 4.6cqw, 68px);
+    max-width: none;
+  }
+}
+
+.proto-errors-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 88px;
+  padding: 0 24px 4px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  background: #e6e8e8;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 4px 10px rgba(0, 0, 0, 0.07);
+}
+
+.proto-errors-card--tinted {
+  border-color: rgba(214, 41, 44, 0.12);
+  background: #efc5c5;
+}
+
+.proto-errors-title {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  color: #333;
+}
+
+.proto-errors-card--alert .proto-errors-title,
+.proto-errors-card--tinted .proto-errors-title {
+  font-weight: 700;
+  color: var(--err-red);
+}
+
+.proto-errors-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.proto-errors-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--err-red);
+}
+
+.proto-errors-text {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* The original gauge's green and amber left showing at its start, the rest of it in error. */
+.proto-errors-bar--gauge {
+  padding-left: 52px;
+}
+
+.proto-errors-bar--gauge::before,
+.proto-errors-bar--gauge::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 46px;
+}
+
+.proto-errors-bar--gauge::before {
+  background: var(--err-yellow);
+  clip-path: polygon(0 0, 30px 0, 44px 50%, 30px 100%, 0 100%);
+}
+
+.proto-errors-bar--gauge::after {
+  background: var(--err-green);
+  clip-path: polygon(0 0, 22px 0, 36px 50%, 22px 100%, 0 100%);
+}
+
+.proto-errors-bar--striped {
+  background:
+    repeating-linear-gradient(120deg, transparent 0 34px, rgba(255, 255, 255, 0.2) 34px 46px),
+    var(--err-red);
+}
+
+/* The whole card turns red, with the gauge's two good colours kept as a key down its edge. */
+.proto-errors-card--flood {
+  align-items: center;
+  padding: 0 24px 0 58px;
+  border: 0;
+  background: linear-gradient(90deg, var(--err-green) 0 22px, var(--err-yellow) 22px 34px, var(--err-red) 34px);
+}
+
+.proto-errors-bar--badge,
+.proto-errors-bar--triangle {
+  justify-content: flex-start;
+}
+
+.proto-errors-bar--badge {
+  border-radius: 6px 0 0 6px;
+}
+
+.proto-errors-badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 0 6px 6px 0;
+  background: var(--err-red);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.proto-errors-bar--triangle {
+  clip-path: polygon(0 0, 100% 0, calc(100% - var(--err-slant)) 100%, 0 100%);
+}
+
+/* Pulled back under the slant so the two edges keep a constant gap. */
+.proto-errors-triangle {
+  flex: none;
+  width: 34px;
+  height: 30px;
+  margin-left: calc(5px - var(--err-slant) - 6px);
+  color: var(--err-red);
 }
 
 /* Code listing: a header bar (file, language, copy) over numbered lines, in the panel grey

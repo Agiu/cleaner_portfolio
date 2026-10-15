@@ -18,4 +18,6 @@ const publicAppIndexes = (dirs: string[]): Plugin => ({
 
 export default defineConfig({
   plugins: [react(), publicAppIndexes(['who', 'who/explore'])],
+  // maplibre's worker (the Who Owns Seattle hero) is an ES module that imports a shared chunk.
+  worker: { format: 'es' },
 })
