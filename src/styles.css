@@ -15,6 +15,7 @@
   --leading-xl: 43px;
 
   --row-gap: 13px;
+  --card-radius: 8px; /* the Work page's case study cards */
   --content-width: 1090px;
   --sidebar-width: 292px;
 
@@ -338,7 +339,9 @@ a {
 }
 
 .sidebar .intro {
-  padding: 25px 29px 0 24px;
+  /* The name's 34px leading sits tighter than its 36px caps, so the top gets a little more than
+     the sides for the caps to read as evenly inset. */
+  padding: 32px 29px 0 24px;
 }
 
 .sidebar-main {
@@ -634,6 +637,9 @@ a {
 
 .cs-inner {
   display: grid;
+  /* The whole card (image and panel) rounds at its outer corners. */
+  overflow: hidden;
+  border-radius: var(--card-radius);
   grid-template-columns: calc(var(--media) * 100%) 1fr;
   /* No min-height floor: the frame's width now depends on window height as well as width (see
      #root), so a fixed floor here could once again demand more width than the sidebar layout
@@ -676,6 +682,92 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* ---------- Who Owns Seattle's Work page cover (covers/WosCover) ---------- */
+.wos-cover {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #1a1a19;
+}
+
+/* Equal insets on both axes keep the map window the same shape as the card. */
+.wos-cover-window {
+  position: absolute;
+  inset: 12.5%;
+  overflow: hidden;
+}
+
+/* ForeFlight's cover (covers/ForeFlightCover.tsx): its layers stacked, each cut to the card like
+   the image they flatten to. */
+.ff-cover {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.ff-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+
+/* Placed over the window as the map image sits under it in the Figma frame. */
+.wos-cover-window img {
+  position: absolute;
+  left: -12.2%;
+  top: 0;
+  width: 173.7%;
+  max-width: none;
+  transform: translateY(-6.1%);
+  transition: opacity 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* The map steps back under the type while the card is hovered. */
+@media (hover: hover) and (pointer: fine) {
+  .cs-inner:hover .wos-cover-window img,
+  .cs-compact-link:hover .wos-cover-window img {
+    opacity: 0.4;
+  }
+}
+
+.wos-cover-type {
+  position: absolute;
+  left: -11%;
+  top: 50%;
+  width: 118.7%;
+  overflow: visible;
+  transform: translateY(-50%);
+}
+
+.wos-cover-type--outline {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 12;
+}
+
+.wos-cover-type--fill {
+  fill: #fff;
+}
+
+.wos-cover-fill {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(12.5%);
+}
+
+/* The case study hero's paper (.wos-site), shown only as the card grows into it. */
+.wos-cover-wash {
+  position: absolute;
+  inset: 0;
+  background: #f4f4f2;
+  opacity: 0;
+  visibility: hidden;
 }
 
 /* Wireframe stand-in for a cover image: soft tonal gradient so parallax reads. */
@@ -768,6 +860,11 @@ a {
   border-top: 1px solid var(--ink);
 }
 
+/* At the foot of a case study, inset to the image rows' edges. */
+.study-more {
+  margin: 96px calc(var(--sv-inset, 24px) + 40px) 96px;
+}
+
 .cs-more-title {
   margin-bottom: 20px;
   font-size: 15px;
@@ -785,307 +882,31 @@ a {
   display: block;
 }
 
-/* ---------- The Work page's closing plate (WorkEnd): a spec sheet in the header reel's black,
-   white and one grey, bookending the reel at the top of the page ---------- */
-
-.work-end {
-  --we-bg: #010101;
-  --we-ink: #ffffff;
-  --we-mid: #7a7a7a;
-  --we-rule: rgb(255 255 255 / 0.32);
-  position: relative;
-  margin-top: 96px;
-  padding: 22px 28px 26px;
-  background: var(--we-bg);
-  color: var(--we-ink);
-  container-type: inline-size;
-  font: 500 11px/1.4 ui-monospace, Menlo, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-/* Registration marks in the corners, like a print sheet's. */
-.we-reg {
+/* Read out but not shown: a card's title and summary when its built cover already spells them. */
+.cs-compact-info.visually-hidden {
   position: absolute;
-  width: 9px;
-  height: 9px;
-  pointer-events: none;
-}
-
-.we-reg::before,
-.we-reg::after {
-  content: '';
-  position: absolute;
-  background: var(--we-mid);
-}
-
-.we-reg::before {
-  left: 4px;
   width: 1px;
-  height: 100%;
-}
-
-.we-reg::after {
-  top: 4px;
-  width: 100%;
   height: 1px;
-}
-
-.we-reg--tl { top: 7px; left: 7px; }
-.we-reg--tr { top: 7px; right: 7px; }
-.we-reg--bl { bottom: 7px; left: 7px; }
-.we-reg--br { bottom: 7px; right: 7px; }
-
-.we-bar {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--we-rule);
-}
-
-.we-bar h2 {
-  margin: 0;
-  font: inherit;
-}
-
-.we-bar > span {
-  color: var(--we-mid);
-}
-
-.we-body {
-  display: grid;
-  gap: 28px;
-  align-items: center;
-  padding: 28px 0 32px;
-}
-
-@container (min-width: 820px) {
-  .we-body {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-    gap: 48px;
-  }
-}
-
-/* ---- The two-block mark ---- */
-
-.we-mark {
-  display: block;
-  width: 100%;
-  max-width: 520px;
-  margin: 0 auto;
-  overflow: visible;
-}
-
-.we-dot {
-  fill: var(--we-mid);
-}
-
-.we-grid {
-  opacity: 0.45;
-}
-
-.we-fill {
-  fill: var(--we-ink);
-}
-
-.we-outline,
-.we-ghost-line {
-  fill: none;
-  stroke: var(--we-ink);
-  stroke-width: 1;
-  stroke-linejoin: round;
-}
-
-.we-mark line {
-  stroke: var(--we-mid);
-  stroke-width: 1;
-}
-
-.we-mark text {
-  fill: var(--we-mid);
-  font: 500 8px ui-monospace, Menlo, monospace;
-  letter-spacing: 0.04em;
-}
-
-.we-mark .we-read {
-  fill: var(--we-ink);
-}
-
-/* ---- The index ---- */
-
-.we-index-head,
-.we-row a {
-  display: grid;
-  grid-template-columns: 4ch minmax(0, 1fr) auto 5ch;
-  gap: 16px;
-  padding: 8px 8px;
-}
-
-.we-index-head {
-  border-top: 2px solid var(--we-ink);
-  border-bottom: 1px solid var(--we-rule);
-  color: var(--we-mid);
-}
-
-.we-index ol {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.we-row {
-  border-bottom: 1px solid var(--we-rule);
-}
-
-.we-row a {
-  color: inherit;
-  text-decoration: none;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease;
-}
-
-.we-row a span:last-child {
-  text-align: right;
-}
-
-.we-index-head span:last-child {
-  text-align: right;
-}
-
-.we-col-num,
-.we-row .we-col-discipline {
-  color: var(--we-mid);
-  transition: color 0.18s ease;
-}
-
-.we-row a:hover,
-.we-row a:focus-visible {
-  background: var(--we-ink);
-  color: var(--we-bg);
-  outline: none;
-}
-
-.we-row a:hover span,
-.we-row a:focus-visible span {
-  color: inherit;
-}
-
-@container (max-width: 520px) {
-  .we-index-head,
-  .we-row a {
-    grid-template-columns: 3ch minmax(0, 1fr) 5ch;
-  }
-
-  .we-col-discipline {
-    display: none;
-  }
-}
-
-/* ---- The foot: the reel's progress bar, the credit, and the stamp over the closing rule ---- */
-
-.we-foot {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  min-height: 24px;
-  padding-top: 14px;
-  padding-right: 120px; /* clear of the stamp */
-  border-top: 1px solid var(--we-rule);
-}
-
-.we-reel {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  overflow: hidden;
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
-/* Narrow: the progress bar over the credit, both clear of the stamp. */
-@container (max-width: 520px) {
-  .we-foot {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    min-height: 72px;
-  }
+.cs-compact--locked .cs-compact-link {
+  cursor: not-allowed;
 }
 
-.we-segs {
-  display: flex;
-  gap: 3px;
-}
-
-.we-seg {
-  width: 18px;
-  height: 2px;
-  background: rgb(255 255 255 / 0.2);
-}
-
-.we-seg i {
-  display: block;
-  height: 100%;
-  background: var(--we-ink);
-  transform-origin: left center;
-}
-
-.we-credit {
-  color: var(--we-mid);
-}
-
-.we-stamp {
-  --end-stamp-ground: var(--we-bg);
-  position: absolute;
-  right: 0;
-  bottom: -8px;
-  width: 104px;
-  height: 104px;
-}
-
-/* ---- The stamp (EndStamp): the reel's line art in the colour it sits in ---- */
-
-.end-stamp {
-  display: block;
-  overflow: visible;
-  transform: rotate(-8deg);
-}
-
-.end-stamp-line {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1;
-}
-
-.end-stamp-fill {
-  fill: currentColor;
-}
-
-.end-stamp-grid {
-  opacity: 0.35;
-}
-
-.end-stamp-route {
-  opacity: 0.6;
-}
-
-.end-stamp-check {
-  fill: none;
-  stroke: var(--end-stamp-ground, var(--bg));
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.end-stamp-ring-text {
-  font: 500 9.5px ui-monospace, Menlo, monospace;
-  letter-spacing: 0;
-  fill: currentColor;
+.cs-lock {
+  display: inline-block;
+  width: 0.62em;
+  height: auto;
+  margin-left: 0.35em;
+  vertical-align: baseline;
 }
 
 .cs-compact-media {
   aspect-ratio: 16 / 10;
+  border-radius: var(--card-radius);
 }
 
 .cs-compact-media img,
@@ -1237,10 +1058,20 @@ a {
 
 /* ---------- Home -> case study transition ---------- */
 
+/* Fading out to a site outside this app (fadeToSite in pageTransition.ts). */
+.site-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* Starts with the card's rounding and squares off as it grows into the hero. */
 .expand-overlay {
   position: fixed;
   z-index: 30;
   overflow: hidden;
+  border-radius: var(--card-radius);
   pointer-events: none;
   background: var(--media);
   will-change: left, top, width, height;
@@ -1250,6 +1081,7 @@ a {
 .expand-overlay > .media {
   position: absolute;
   inset: 0;
+  border-radius: 0;
 }
 
 /* ---------- Case study page ---------- */
@@ -1548,11 +1380,218 @@ a {
   box-shadow: 0 30px 60px -30px rgb(0 0 0 / 0.25);
 }
 
+/* A line set large at the foot of the hero, over a shade that keeps it legible on any frame. */
+.study-hero-line {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 240px 16px 16px; /* the video credit's 16px margins */
+  background: linear-gradient(to top, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.5) 55%, transparent);
+  color: #fff;
+  pointer-events: none;
+}
+
+.study-hero-line p {
+  max-width: 20ch;
+  font-size: clamp(40px, 4.6vw, 80px);
+  line-height: 0.95;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
 .study-hero {
   /* One window tall, like .home-header, so the hero lands at the exact size the home card grew to
      (see expandToHero in pageTransition.ts) with no pop between the transition and the real page. */
   height: 100vh;
   height: 100svh;
+}
+
+/* ---------- Password-protected study: the unlock modal (components/UnlockModal.tsx) ---------- */
+
+.unlock {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(10 10 10 / 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: unlock-in 0.35s ease-out;
+}
+
+@keyframes unlock-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.unlock .study-gate-panel {
+  animation: unlock-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes unlock-rise {
+  from {
+    transform: translateY(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unlock,
+  .unlock .study-gate-panel {
+    animation: none;
+  }
+}
+
+.unlock-close {
+  position: absolute;
+  top: 34px; /* inside the corner marks */
+  right: 34px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: rgb(255 255 255 / 0.7);
+  cursor: pointer;
+}
+
+.unlock-close:hover {
+  color: var(--surface);
+}
+
+.unlock-close:focus-visible {
+  outline: 2px solid var(--surface);
+}
+
+.unlock-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.study-gate-panel.sv-feature-panel {
+  width: min(100%, 520px);
+  border-radius: 10px; /* --sv-radius, which only the sections define */
+  padding: 56px 48px;
+  text-align: center;
+}
+
+.study-gate-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.study-gate-lock {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 6px;
+}
+
+.study-gate-label {
+  font-size: 10px;
+  line-height: 1.3;
+  color: rgb(255 255 255 / 0.55);
+}
+
+.study-gate-title {
+  font-size: var(--text-xl);
+  line-height: 34px;
+  font-weight: 900;
+}
+
+.study-gate-text {
+  max-width: 34ch;
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgb(255 255 255 / 0.7);
+}
+
+.study-gate-form {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.study-gate-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.04);
+  color: var(--surface);
+  font: inherit;
+  font-size: 15px;
+}
+
+.study-gate-input::placeholder {
+  color: rgb(255 255 255 / 0.4);
+}
+
+.study-gate-input:focus-visible {
+  outline: 2px solid var(--surface);
+  outline-offset: 2px;
+}
+
+.study-gate-input[aria-invalid='true'] {
+  border-color: #ff8a80;
+}
+
+.study-gate-submit {
+  height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--surround);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.study-gate-submit:hover {
+  opacity: 0.85;
+}
+
+.study-gate-submit:focus-visible {
+  outline: 2px solid var(--surface);
+  outline-offset: 2px;
+}
+
+.study-gate-submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.study-gate-error {
+  font-size: 13px;
+  color: #ff8a80;
+}
+
+@media (max-width: 899px) {
+  .study-gate-panel.sv-feature-panel {
+    padding: 48px 24px;
+  }
+
+  .study-gate-form {
+    flex-direction: column;
+  }
+
+  .study-gate-input {
+    flex: none;
+  }
 }
 
 /* ---------- Hero scene: Who Owns Seattle's opening at /who, its map turning (heroes/WosSite) ---------- */
@@ -1591,48 +1630,12 @@ a {
     radial-gradient(circle, rgb(244 244 242 / 0.55) 0.9px, transparent 1.3px) 0 0 / 4px 4px;
 }
 
-.wos-site-copy {
-  position: absolute;
-  left: var(--wos-pad);
-  bottom: clamp(40px, 9cqh, 96px);
-  max-width: min(640px, calc(100% - 2 * var(--wos-pad)));
-}
-
-.wos-site-title {
-  display: block;
-  width: clamp(220px, 30cqw, 440px);
-  height: auto;
-}
-
-.wos-site-lede {
-  max-width: 34em;
-  margin-top: 24px;
-  font-size: 18px;
-  line-height: 1.45;
-}
-
-.wos-site-lede a {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: #e34948;
-  text-decoration-thickness: max(2px, 0.06em);
-  text-underline-offset: max(3px, 0.12em);
-}
-
-.wos-site-lede a:hover {
-  text-decoration-thickness: max(3px, 0.09em);
-}
-
 /* Narrow frames: the fade comes up from the bottom instead, under the copy. */
 @container (max-width: 960px) {
   .wos-site-grain {
     background:
       linear-gradient(0deg, var(--wos-paper) 0%, rgb(244 244 242 / 0.92) 42%, rgb(244 244 242 / 0) 72%),
       radial-gradient(circle, rgb(244 244 242 / 0.55) 0.9px, transparent 1.3px) 0 0 / 4px 4px;
-  }
-
-  .wos-site-lede {
-    font-size: 16px;
   }
 }
 
@@ -1824,6 +1827,20 @@ a {
   aspect-ratio: var(--aspect, 4 / 5);
 }
 
+/* The title's 200px cap is for the heading; a side image takes the whole column. */
+@media (min-width: 900px) {
+  .study-section-text > .study-side-media {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+/* Beside the copy, the caption reads down from the image's left edge rather than centred. */
+.study-side-media .study-figure figcaption {
+  margin: 0;
+  text-align: left;
+}
+
 /* Text that continues after an image row within the same section: less air above it. */
 .study-section-text--more {
   padding-top: 48px;
@@ -1947,6 +1964,1581 @@ a {
 
 .media--clear img {
   object-fit: contain;
+}
+
+/* ---------- Case study v2 section layouts (Figma 495:77; SectionV2, on trial for Project Open) ----------
+   Measured from the Figma frames at 1/6.4 (the frame's 7311 is the content column at 1440 wide).
+   The copy column is the frame's centre 36%, and copy that carries on after an image row keeps
+   to it. */
+.study-section--v2 {
+  --sv-col: 36%;
+  --sv-inset: 24px;
+  --sv-radius: 10px;
+}
+
+.sv-text,
+.sv-half-copy,
+.sv-sticky-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.sv-text {
+  padding: 75px 32% 72px;
+}
+
+.sv-text--after {
+  padding: 40px 32% 72px;
+}
+
+/* The section's label follows the academic slug closely, as its continuation. */
+.sv-wide:has(.academic-slug) + .sv-text {
+  padding-top: 16px;
+}
+
+.study-section--v2 p,
+.study-section--v2 .study-section-list ul {
+  max-width: none;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+/* The section's title, small and grey, over its lead. */
+.study-section--v2 .sv-label {
+  margin-bottom: -12px;
+  font-size: 10px;
+  line-height: 1.3;
+  font-weight: 300;
+  color: #909090;
+}
+
+/* The lead and subheadings: bold, a touch over the body size. */
+.study-section--v2 .study-section-lead,
+.study-section--v2 .study-section-subheading {
+  max-width: none;
+  margin: 0;
+  font-size: 16.5px;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* A caption or aside: small, black, behind a rule that runs its full height. */
+.study-section--v2 .sv-note,
+.study-section--v2 .study-section-note {
+  display: block;
+  max-width: 42ch;
+  padding-left: 8px;
+  border-left: 1px solid var(--ink);
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.study-section--v2 .study-section-note::before {
+  content: none;
+}
+
+/* A statement: centred, large in the display weight. Its words fill in from grey as it
+   scrolls up (see Statement). */
+.study-section--v2 .sv-statement {
+  padding: 72px 14%;
+  text-align: center;
+  font-size: clamp(32px, 3.4vw, 52px);
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ==Highlighted== runs read a step stronger than the copy around them. */
+.study-section--v2 mark {
+  background: none;
+  color: inherit;
+  font-weight: 500;
+}
+
+.sv-statement mark {
+  font-weight: inherit;
+}
+
+/* A statement list (```hmw…) on its own, on a dark panel inset like the image rows: the
+   sentence a step up from the copy in light ink, a faint dot grid and crop marks in the corners.
+   Its button follows beneath; both pan in as the panel scrolls into view (see Feature). */
+.sv-feature {
+  /* The image rows' edges: their inset plus each figure's 40px side margin. */
+  padding: 16px calc(var(--sv-inset) + 40px);
+}
+
+.sv-feature-panel {
+  position: relative;
+  overflow: hidden;
+  /* The copy column, measured against the section rather than the inset panel. */
+  --sv-edge: calc(var(--sv-inset) + 40px);
+  padding: 96px calc((100% + 2 * var(--sv-edge)) * 0.32 - var(--sv-edge));
+  border-radius: var(--sv-radius);
+  background: var(--surround);
+  color: var(--surface);
+}
+
+.sv-feature-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(255 255 255 / 0.13) 1px, transparent 1.2px);
+  background-size: 16px 16px;
+  background-position: 8px 8px;
+  pointer-events: none;
+}
+
+.sv-feature-mark {
+  --mark-inset: 20px;
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 0 solid rgb(255 255 255 / 0.55);
+}
+
+.sv-feature-mark--tl {
+  top: var(--mark-inset);
+  left: var(--mark-inset);
+  border-width: 1px 0 0 1px;
+  transform-origin: 0 0;
+}
+
+.sv-feature-mark--tr {
+  top: var(--mark-inset);
+  right: var(--mark-inset);
+  border-width: 1px 1px 0 0;
+  transform-origin: 100% 0;
+}
+
+.sv-feature-mark--bl {
+  bottom: var(--mark-inset);
+  left: var(--mark-inset);
+  border-width: 0 0 1px 1px;
+  transform-origin: 0 100%;
+}
+
+.sv-feature-mark--br {
+  right: var(--mark-inset);
+  bottom: var(--mark-inset);
+  border-width: 0 1px 1px 0;
+  transform-origin: 100% 100%;
+}
+
+.sv-feature-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.study-section--v2 .sv-feature .proto-statements {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.study-section--v2 .sv-feature .proto-statements-text {
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: inherit;
+}
+
+/* The button's arrow and rule are black artwork; turn them light on the panel. */
+.sv-feature .arrow-link img {
+  filter: invert(1);
+}
+
+/* Stats on the dark sheet (see Impact): the subheading in light ink, then the figures in the
+   display type, large, three across the panel under a light rule each. */
+.sv-impact-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+  padding: 72px 6%;
+}
+
+.sv-impact-title {
+  position: relative;
+  max-width: 24ch;
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.sv-impact-stats {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 32px;
+  margin: 0;
+}
+
+.sv-impact-stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 18px;
+}
+
+.sv-impact-rule {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgb(255 255 255 / 0.35);
+}
+
+.sv-impact-stat dd {
+  margin: 0;
+  font-size: clamp(48px, 6vw, 96px);
+  line-height: 0.9;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sv-impact-unit {
+  margin-left: 0.15em;
+  font-size: 0.4em;
+}
+
+.sv-impact-unit--prefix {
+  margin: 0 0.1em 0 0;
+}
+
+.sv-impact-stat dt {
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgb(255 255 255 / 0.6);
+}
+
+.sv-impact-copy {
+  position: relative;
+}
+
+.sv-impact .arrow-link img {
+  filter: invert(1);
+}
+
+/* Audio tracks and code on the dark sheet (see Feature): the subheading and paragraph that
+   introduce them in light ink, the tracks beside that intro, the code beneath it, full width. */
+.sv-panel .sv-feature-panel {
+  padding: 72px 6%;
+}
+
+.sv-panel-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 40ch;
+}
+
+.study-section--v2 .sv-panel-intro .study-section-subheading {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.study-section--v2 .sv-panel-intro p {
+  color: rgb(255 255 255 / 0.7);
+}
+
+.sv-panel--tracks .sv-feature-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 56px;
+  align-items: start;
+}
+
+.sv-panel--code .sv-feature-copy {
+  gap: 32px;
+}
+
+/* The track list, light on the sheet. */
+.sv-panel .audio-tracks {
+  max-width: none;
+  margin: 0;
+}
+
+.sv-panel .audio-track-play {
+  background: var(--surface);
+  color: var(--surround);
+}
+
+.sv-panel .audio-track-index,
+.sv-panel .audio-track-time {
+  color: rgb(255 255 255 / 0.55);
+}
+
+.sv-panel .audio-track-rule::before {
+  background: rgb(255 255 255 / 0.2);
+}
+
+.sv-panel .audio-track-rule span {
+  background: var(--surface);
+}
+
+.sv-panel .audio-track-rule:focus-visible {
+  outline-color: var(--surface);
+}
+
+/* The code listing, light on the sheet, keeping its monochrome highlighting. */
+.sv-panel .code-block {
+  margin: 0;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.03);
+}
+
+.sv-panel .code-block-bar {
+  border-bottom-color: rgb(255 255 255 / 0.12);
+}
+
+.sv-panel .code-block-lang,
+.sv-panel .code-block-copy {
+  color: rgb(255 255 255 / 0.55);
+}
+
+.sv-panel .code-block-copy:hover,
+.sv-panel .code-block-copy:focus-visible {
+  color: var(--surface);
+}
+
+.sv-panel .code-block-body {
+  max-height: none;
+  overflow: visible;
+  color: rgb(255 255 255 / 0.78);
+  white-space: pre-wrap;
+}
+
+/* No scrolling: a long line wraps, clear of its number, which sits out in the gutter. */
+.sv-panel .code-line {
+  position: relative;
+  padding-left: 44px;
+  overflow-wrap: anywhere;
+}
+
+.sv-panel .code-ln {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: rgb(255 255 255 / 0.28);
+}
+
+.sv-panel .code-kw,
+.sv-panel .code-type {
+  color: var(--surface);
+}
+
+.sv-panel .code-str,
+.sv-panel .code-num {
+  color: rgb(255 255 255 / 0.6);
+}
+
+.sv-panel .code-com {
+  color: rgb(255 255 255 / 0.4);
+}
+
+/* One rhythm for every v2 copy column: blocks are spaced only by the column's 18px gap (about a
+   line), so no block brings margins of its own. A subheading opens a new group with double that
+   above it and pulls what it heads in close beneath. */
+.study-section--v2 :is(.proto-stats, .proto-insights, .proto-statements, .proto-notice, .proto-button) {
+  margin: 0;
+}
+
+.study-section--v2 .study-section-subheading {
+  margin: 18px 0 0;
+}
+
+.study-section--v2 .study-section-subheading + * {
+  margin-top: -8px;
+}
+
+/* Opening a column (beside a sticky or half image), it lines up with the image's top. */
+.study-section--v2 .study-section-subheading:first-child {
+  margin-top: 0;
+}
+
+/* Insight titles read as titles: the copy's weight for headings. */
+.study-section--v2 .proto-insights-title {
+  font-weight: 700;
+}
+
+/* Stats keep to one row in the narrower column, the figures a step up from the copy rather
+   than a leap. */
+.study-section--v2 .proto-stats {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+.study-section--v2 .proto-stats div {
+  gap: 6px;
+}
+
+.study-section--v2 .proto-stats dd {
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.study-section--v2 .proto-insights li {
+  line-height: 1.3;
+}
+
+/* Images edge to edge, side by side at their own proportions: each grows by its ratio, so a
+   row's heights match. */
+.sv-media {
+  display: flex;
+  gap: var(--row-gap);
+  padding: 16px var(--sv-inset);
+}
+
+.sv-figure {
+  flex: var(--aspect-n, 1.6) 1 0;
+  min-width: 0;
+}
+
+.sv-figure .media {
+  aspect-ratio: var(--aspect, 16 / 10);
+  border-radius: var(--sv-radius);
+  overflow: hidden;
+}
+
+.sv-figure .sv-note {
+  margin-top: 19px;
+}
+
+/* Copy beside an image keeps to one of two side columns, the same width as the centre one:
+   54% in when the image is on the left; when it's on the right, the copy starts at the image
+   rows' left edge (their inset plus each figure's 40px margin). */
+
+/* A portrait image: from the site's edge to the copy, the copy's full height, cut-outs whole
+   on the panel grey. */
+.sv-half {
+  display: grid;
+  grid-template-columns: calc(54% - 32px) 32px var(--sv-col) 1fr;
+}
+
+.sv-half-media {
+  grid-column: 1;
+}
+
+.sv-half-copy {
+  grid-column: 3;
+}
+
+.sv-half--right {
+  grid-template-columns: calc(var(--sv-inset) + 40px) var(--sv-col) 1fr calc(54% - 32px);
+}
+
+.sv-half--right .sv-half-media {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.sv-half--right .sv-half-copy {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.sv-half-media {
+  position: relative;
+  min-height: 420px;
+  overflow: hidden;
+  /* Square where it meets the site's edge, rounded on the side facing the copy. */
+  border-radius: 0 var(--sv-radius) var(--sv-radius) 0;
+  background: var(--media);
+}
+
+.sv-half--right .sv-half-media {
+  border-radius: var(--sv-radius) 0 0 var(--sv-radius);
+}
+
+.sv-half-media .media {
+  position: absolute;
+  inset: 0;
+}
+
+.sv-half-media .media img {
+  object-fit: cover;
+}
+
+.sv-half-media .media--clear img {
+  object-fit: contain;
+  padding: 8%;
+}
+
+.sv-half-copy {
+  padding: 75px 0 72px;
+}
+
+/* A small image held in view beside the copy that follows it, which takes the right column. */
+.sv-sticky {
+  display: grid;
+  grid-template-columns: 18% 1fr 32px var(--sv-col) 10%;
+  padding: 93px 0 72px;
+}
+
+.sv-sticky-media {
+  grid-column: 2;
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+
+/* "right": mirrored, the copy in the left column and the image beside it on the right. */
+.sv-sticky--right {
+  grid-template-columns: calc(var(--sv-inset) + 40px) var(--sv-col) 1fr calc(36% - 32px) 18%;
+}
+
+.sv-sticky--right .sv-sticky-media {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.sv-sticky--right .sv-sticky-copy {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+/* Its figures fill their column, without the image rows' side margins. */
+.sv-sticky .sv-figure {
+  margin: 0;
+}
+
+.sv-sticky-copy {
+  grid-column: 4;
+  padding-top: 6px;
+}
+
+/* Doubled up to outrank .study-proto's own padding, further down. */
+.study-proto.sv-wide {
+  padding: 16px var(--sv-inset);
+}
+
+/* ```decision: the dark drawing sheet of the statement lists (.sv-feature-panel), lined up with
+   the image rows, with the line centred in the display type, larger. */
+.proto-decision {
+  margin: 0 40px; /* the image rows' edges, past the wide block's inset */
+  padding: 128px 10%;
+  text-align: center;
+}
+
+.study-section--v2 .proto-decision-text {
+  position: relative;
+  max-width: 24ch;
+  margin: 0 auto;
+  font-size: clamp(36px, 3.4vw, 56px);
+  line-height: 0.95;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: inherit;
+}
+
+/* ```tri-axis: the breakthrough as a line drawing on a light drawing sheet (the statement
+   lists' panel, inverted), at the image rows' edges, with its legend beneath. */
+.tri-axis {
+  --tri-sheet: var(--surface-contact);
+  margin: 0 40px;
+}
+
+/* The light drawing sheet: the dark panels' sheet, inverted, for research artefacts. */
+.sv-sheet--light.sv-feature-panel {
+  background: var(--surface-contact);
+  color: var(--ink);
+}
+
+.sv-sheet--light .sv-feature-grid {
+  background-image: radial-gradient(rgb(0 0 0 / 0.12) 1px, transparent 1.2px);
+}
+
+.sv-sheet--light .sv-feature-mark {
+  border-color: rgb(0 0 0 / 0.45);
+}
+
+.tri-sheet.sv-feature-panel {
+  padding: 40px 10%;
+}
+
+/* ```audit: an outside audit set out on the light sheet, at the image rows' edges: its title,
+   what's working against what could be improved, its themes, a bar chart, then the source. */
+.audit {
+  margin: 0 40px;
+}
+
+.audit-sheet.sv-feature-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  padding: 64px 6%;
+}
+
+.study-section--v2 .audit-title {
+  position: relative;
+  max-width: 28ch;
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.audit-pairs {
+  position: relative;
+  display: grid;
+}
+
+.audit-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+  padding: 14px 0;
+  border-top: 1px solid rgb(0 0 0 / 0.14);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.audit-pair--head {
+  padding-top: 0;
+  border-top: 0;
+  font-size: 10px;
+  line-height: 1.3;
+  color: #707070;
+}
+
+.audit-themes {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--audit-columns, 4), minmax(0, 1fr));
+  gap: 32px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.audit-theme {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 2px solid var(--ink);
+}
+
+.study-section--v2 .audit-theme p {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.study-section--v2 .audit-theme .audit-theme-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.audit-chart {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.study-section--v2 .audit-chart-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.study-section--v2 .audit-chart-note {
+  font-size: 13px;
+  color: #707070;
+}
+
+.audit-bars {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.audit-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 15em) minmax(0, 1fr) 4em;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.audit-bar-track {
+  height: 10px;
+}
+
+.audit-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+.audit-bar-value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.study-section--v2 .audit-source {
+  margin-top: 12px;
+  padding-left: 8px;
+  border-left: 1px solid var(--ink);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.tri-drawing {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.tri-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+}
+
+.tri-line--faint {
+  stroke-opacity: 0.35;
+}
+
+/* The frame's tube: a wide dark stroke, then a slightly narrower one in the sheet's colour. */
+.tri-line--tube {
+  stroke-width: 30;
+}
+
+.tri-tube {
+  fill: none;
+  stroke: var(--tri-sheet);
+  stroke-width: 27;
+  stroke-linecap: round;
+}
+
+.tri-face,
+.tri-key-ring {
+  fill: var(--tri-sheet);
+}
+
+/* The cut-away stretch: the tube's outline, faint. */
+.tri-ghost {
+  fill: none;
+  stroke: var(--ink);
+  stroke-opacity: 0.22;
+  stroke-width: 30;
+  stroke-linecap: round;
+}
+
+.tri-leader {
+  stroke: var(--ink);
+  stroke-opacity: 0.6;
+}
+
+.tri-dot {
+  fill: var(--ink);
+}
+
+.tri-key-ring {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+
+.tri-key text {
+  font-size: 15px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+
+.tri-legend {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 24px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tri-legend li {
+  display: flex;
+  gap: 10px;
+}
+
+.tri-legend-n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.study-section--v2 .tri-legend p {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.study-section--v2 .tri-legend .tri-legend-title {
+  font-weight: 700;
+}
+
+/* Blocks that run to the image rows' edges: the wide block's inset plus each figure's margin. */
+.carousel--images,
+.personas,
+.insight-toggle,
+.video-loop,
+.compare,
+.renames {
+  margin: 0 40px;
+}
+
+/* ---------- Carousels (blocks/Carousel.tsx) ---------- */
+
+.carousel-track {
+  display: flex;
+  gap: var(--row-gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  cursor: grab;
+}
+
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-track.is-dragging {
+  scroll-snap-type: none;
+  cursor: grabbing;
+  user-select: none;
+}
+
+.carousel-track:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.carousel-slide,
+.persona {
+  --focus: 1; /* set from the scroll position each frame (Carousel.tsx): 1 in front, 0 away */
+}
+
+/* Slides away from the front dim and step back, in step with the scroll, no easing of their own. */
+.carousel-slide {
+  flex: none;
+  margin: 0;
+  scroll-snap-align: start;
+  opacity: calc(0.45 + 0.55 * var(--focus));
+  scale: calc(0.97 + 0.03 * var(--focus));
+}
+
+.carousel-slide img {
+  display: block;
+  height: clamp(260px, 34vw, 520px);
+  width: auto;
+  border-radius: var(--sv-radius, 10px);
+  pointer-events: none;
+}
+
+.carousel-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.carousel-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.carousel-progress {
+  flex: 1;
+  height: 1px;
+  background: rgb(0 0 0 / 0.15);
+}
+
+.carousel-progress span {
+  display: block;
+  height: 100%;
+  background: currentColor;
+  transform-origin: 0 50%;
+}
+
+.carousel-arrows {
+  display: flex;
+  gap: 6px;
+}
+
+.carousel-arrows button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.carousel-arrows button:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.carousel-arrows button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.carousel-arrows svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.study-section--v2 .carousel-caption {
+  max-width: 60ch;
+  margin-top: 12px;
+  padding-left: 8px;
+  border-left: 1px solid var(--ink);
+  font-size: 10px;
+  line-height: 1.3;
+  animation: carousel-caption 0.5s ease-out;
+}
+
+.carousel-caption-title {
+  display: block;
+  font-weight: 700;
+}
+
+@keyframes carousel-caption {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* The interviewees: cards on the dark sheet. */
+.personas.sv-feature-panel {
+  padding: 56px 6% 48px;
+  color: var(--surface);
+}
+
+.personas .carousel {
+  position: relative;
+}
+
+/* Room above the cards for the front one's lift, which the scrolling strip would clip. */
+.personas .carousel-track {
+  padding-top: 8px;
+}
+
+.personas .carousel-progress {
+  background: rgb(255 255 255 / 0.2);
+}
+
+.persona {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 300px;
+  min-height: 300px;
+  padding: 24px;
+  /* Brighter and lifted as it comes to the front, with the scroll. The lift uses `translate`,
+     apart from the deal-in's transform (GSAP). */
+  border: 1px solid rgb(255 255 255 / calc(0.16 + 0.44 * var(--focus)));
+  border-radius: 8px;
+  background: rgb(255 255 255 / calc(0.03 + 0.04 * var(--focus)));
+  scroll-snap-align: start;
+  translate: 0 calc(-6px * var(--focus));
+}
+
+.study-section--v2 .persona-id {
+  font-size: 56px;
+  line-height: 0.9;
+  font-weight: 900;
+}
+
+.study-section--v2 .persona-archetype {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.persona-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: auto 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.persona-tags li {
+  padding: 4px 10px;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: rgb(255 255 255 / 0.8);
+}
+
+/* ---------- Insights, tabbed (blocks/InsightToggle.tsx) ---------- */
+
+.insight-toggle.sv-feature-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 56px 6%;
+}
+
+.insight-tabs {
+  position: relative;
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.07);
+}
+
+.insight-tab {
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+
+.insight-tab.is-active {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.insight-tab:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.insight-cards {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insight-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 2px solid var(--ink);
+}
+
+.study-section--v2 .insight-card p {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.insight-card-n {
+  font-size: 10px;
+  color: #707070;
+  font-variant-numeric: tabular-nums;
+}
+
+.study-section--v2 .insight-card .insight-card-title {
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+/* ---------- Looping video (blocks/VideoLoop.tsx) ---------- */
+
+.video-loop video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--sv-radius, 10px);
+  background: #000;
+}
+
+.video-loop .sv-note {
+  margin-top: 12px;
+}
+
+/* ---------- Before and after (blocks/ImageCompare.tsx) ---------- */
+
+.compare-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--sv-radius, 10px);
+  background: var(--media);
+}
+
+.compare-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+.compare-img--before {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  object-fit: cover;
+  object-position: left top;
+}
+
+.compare-label {
+  position: absolute;
+  top: 16px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.compare-label--before {
+  left: 16px;
+}
+
+.compare-label--after {
+  right: 16px;
+}
+
+.compare-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.15);
+  pointer-events: none;
+}
+
+.compare-handle span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
+  translate: -50% -50%;
+}
+
+.compare-handle span::before,
+.compare-handle span::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border: solid var(--ink);
+  border-width: 0 0 1.5px 1.5px;
+}
+
+.compare-handle span::before {
+  left: 11px;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.compare-handle span::after {
+  right: 11px;
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+/* The range input spans the frame, unseen, so dragging anywhere (or arrow keys) moves the handle. */
+.compare-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+
+.compare-frame:has(.compare-range:focus-visible) {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+/* ---------- Renamed terms (blocks/Renames.tsx) ---------- */
+
+.renames.sv-feature-panel {
+  padding: 56px 6%;
+}
+
+.renames-list {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rename {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid rgb(0 0 0 / 0.12);
+  font-size: clamp(20px, 2.2vw, 32px);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.rename:first-child {
+  border-top: 0;
+}
+
+.rename-from {
+  position: relative;
+  justify-self: start;
+  color: #9a9a9a;
+}
+
+.rename-strike {
+  position: absolute;
+  top: 55%;
+  left: -2px;
+  right: -2px;
+  height: 2px;
+  background: var(--ink);
+}
+
+.rename-arrow {
+  justify-self: center;
+  font-weight: 400;
+}
+
+.sv-wide .proto-video {
+  margin: 0 40px; /* the image rows' edges */
+  border-radius: var(--sv-radius);
+  overflow: hidden;
+}
+
+.sv-wide > .sv-note {
+  margin: 12px 40px 0; /* the image rows' edge, like every image's caption */
+}
+
+/* ```academic */
+/* The line centred over the mortarboard field, which fills the block behind it. */
+.academic-slug {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 300px;
+  padding: 40px 32%;
+  overflow: hidden;
+}
+
+.academic-slug-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.academic-slug-art use {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The centre cap, under the line: the brightest, but eased back so the line reads over it. */
+.academic-slug-art .academic-slug-cap {
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.academic-slug-text {
+  position: relative;
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (max-width: 899px) {
+  /* Phones: the content keeps to the details' 24px edges above it (see .study-head). */
+  .layout-study {
+    --study-gutter: 24px;
+  }
+
+  .sv-text,
+  .sv-text--after,
+  .study-section--v2 .sv-statement {
+    padding: 40px var(--study-gutter);
+  }
+
+  .study-section--v2 .sv-statement {
+    padding-block: 64px;
+  }
+
+  .study-hero-line {
+    padding: 120px 16px 16px;
+  }
+
+  /* The credit moves to the top left, leaving the foot of the hero to the hero line. */
+  .study-hero .media-credit {
+    top: 16px;
+    right: auto;
+    bottom: auto;
+    left: 16px;
+  }
+
+  .sv-feature {
+    padding: 8px var(--study-gutter);
+  }
+
+  .sv-wide .proto-video {
+    margin: 0 calc(var(--study-gutter) - var(--sv-inset));
+  }
+
+  /* The study's main column dissolves on a phone (display: contents), so this carries its own
+     grey, and the rule moves onto the title to stay inside the gutters. */
+  .study-more.cs-more {
+    margin: 0;
+    padding: 56px var(--study-gutter) 64px;
+    border-top: 0;
+    background: var(--surface);
+  }
+
+  .study-more .cs-more-title {
+    padding-top: 10px;
+    border-top: 1px solid var(--ink);
+  }
+
+  .tri-axis {
+    margin: 0 calc(var(--study-gutter) - var(--sv-inset));
+  }
+
+  .audit {
+    margin: 0 calc(var(--study-gutter) - var(--sv-inset));
+  }
+
+  .carousel--images,
+  .personas,
+  .insight-toggle,
+  .video-loop,
+  .compare,
+  .renames {
+    margin: 0 calc(var(--study-gutter) - var(--sv-inset));
+  }
+
+  .carousel-slide img {
+    height: 240px;
+  }
+
+  .personas.sv-feature-panel,
+  .insight-toggle.sv-feature-panel,
+  .renames.sv-feature-panel {
+    padding: 40px 20px;
+  }
+
+  .persona {
+    width: 78%;
+    min-height: 260px;
+  }
+
+  .insight-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .insight-tabs {
+    align-self: stretch;
+  }
+
+  .insight-tab {
+    flex: 1;
+  }
+
+  .rename {
+    grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+  }
+
+  .sv-wide > .sv-note {
+    margin-inline: calc(var(--study-gutter) - var(--sv-inset));
+  }
+
+  .audit-sheet.sv-feature-panel {
+    gap: 36px;
+    padding: 40px 20px;
+  }
+
+  .audit-pair {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  /* Stacked, each half carries its column's heading. */
+  .audit-pair--head {
+    display: none;
+  }
+
+  .audit-pair [data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 10px;
+    color: #707070;
+  }
+
+  .audit-themes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .audit-bar {
+    grid-template-columns: minmax(0, 1fr) 3.5em;
+    row-gap: 6px;
+  }
+
+  .audit-bar-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .tri-sheet.sv-feature-panel {
+    padding: 24px 8px;
+  }
+
+  .tri-legend {
+    grid-auto-flow: row;
+    gap: 14px;
+  }
+
+  /* Back out to the image rows' gutter from the wide block's inset. */
+  .proto-decision {
+    margin: 0 calc(var(--study-gutter) - var(--sv-inset));
+    padding: 72px 28px;
+  }
+
+  .sv-feature-panel {
+    padding: 56px 28px;
+  }
+
+  .sv-feature-mark {
+    --mark-inset: 12px;
+  }
+
+  .sv-impact-panel {
+    gap: 40px;
+    padding: 48px 24px;
+  }
+
+  .sv-panel .sv-feature-panel {
+    padding: 48px 20px;
+  }
+
+  .sv-panel--tracks .sv-feature-copy {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .sv-impact-stats {
+    grid-auto-flow: row;
+    gap: 28px;
+  }
+
+  .sv-media {
+    flex-direction: column;
+    padding: 8px var(--study-gutter);
+  }
+
+  .sv-figure {
+    flex: none;
+    width: 100%;
+    margin: 0; /* no figure side margins inside the gutters */
+  }
+
+  .sv-half,
+  .sv-half--right,
+  .sv-sticky {
+    display: block;
+    padding: 0;
+  }
+
+  /* On a phone the half images sit centred inside the gutters like every other image, rounded
+     all round. */
+  .sv-half-media,
+  .sv-half--right .sv-half-media {
+    min-height: 0;
+    aspect-ratio: 4 / 5;
+    margin: 24px var(--study-gutter) 0;
+    border-radius: var(--sv-radius);
+  }
+
+  .sv-half-copy,
+  .sv-half--right .sv-half-copy,
+  .sv-sticky-copy {
+    padding: 32px var(--study-gutter) 40px;
+  }
+
+  .sv-sticky-media {
+    position: static;
+    padding: 24px var(--study-gutter) 0;
+  }
+
+  .academic-slug {
+    min-height: 220px;
+    padding: 32px var(--study-gutter);
+  }
+
 }
 
 /* ---------- Case study prototypes (```fenced blocks, src/components/blocks) ---------- */
@@ -4684,8 +6276,15 @@ a {
     height: 70svh;
   }
 
+  /* The details run in the page's own flow on a phone, not a scroll box of their own. */
   .study-swap {
+    flex: none;
     padding-top: 8px;
+    overflow: visible;
+  }
+
+  .study-details {
+    overflow: visible;
   }
 
   .study-nav {
@@ -4703,7 +6302,7 @@ a {
   .study-section-text {
     grid-template-columns: 1fr;
     gap: 8px;
-    padding: 48px 16px 24px;
+    padding: 48px 24px 24px; /* the details' 24px edges */
   }
 
   .study-section-text--more {

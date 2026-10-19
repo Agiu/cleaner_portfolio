@@ -1,20 +1,7 @@
 <!--
-  Case study page content. The sidebar (year, title, summary, outcomes, team, advisors,
-  hero image/video) lives in src/data/caseStudies.ts — only the right-hand column is here.
-
-  ## Heading        new section + its entry in the sidebar Contents
-  > Lead line       the large statement under a heading; a > anywhere later is a small note
-  Paragraphs        body copy; **bold**, *italic*, ==highlight==, [links](https://…) and - lists work
-  ### Subheading    a smaller heading inside a section
-  ![alt](/work/…)   an image. Consecutive lines = one row (1 full width, 2 side by side);
-                    a blank line between images starts a new row. Images can go anywhere
-                    in a section, text continues below them.
-  ![alt](/work/… "still 16/9")   row options: still = no parallax/crop, plus an aspect ratio
-  ```flow           an interactive prototype (stream, youtube, errorbars, flow, variants, submenu,
-  …                 logbook, logbook-compare); see src/components/blocks for each one's lines
-  ```
-  > Note            on the line straight after the fence (no blank line): sits beside the
-                    prototype (submenu and logbook have room); a blank line puts it below
+  ForeFlight. Sidebar details (year, title, summary, outcomes, advisors, hero image) live in
+  src/data/caseStudies.ts. Set in the v2 layouts: the syntax and layouts are listed at the top
+  of src/lib/caseStudyMarkdown.ts.
 -->
 
 ## Context
@@ -29,7 +16,7 @@ Flight planning, weather briefings, charts, and a digital logbook that has to ho
 
 The ForeFlight debriefing system would grade a pilot based on the flight data taken on the app and the hardware ForeFlight creates.
 
-==To make sure a pilot receives a grade in the first place and that all flight data is collected, ForeFlight uses a system called Track Logs to keep all their flights organized.==
+To make sure a pilot receives a grade in the first place and that all flight data is collected, ForeFlight uses a system called ==Track Logs== to keep all their flights organized.
 
 The data that Track Logs collects:
 
@@ -47,6 +34,8 @@ Coordinates
 There is much more; if you’d like to see all the data it tracks, [click here.](https://support.foreflight.com/hc/en-us/articles/205696557-What-kind-of-flight-data-is-recorded-in-a-track-log-CSV-file)
 
 ## The Problem
+
+> The error bar couldn’t say what went wrong, or whether anything had.
 
 However, when we wanted to run a QA test at ForeFlight, or when a legitimate error showed up on a customer’s dashboard, the existing design wouldn’t tell you exactly what the issue was or even if it was an error. ==I set out to design and implement a few variants of this error bar for ForeFlight internal testing as well as for consumer purposes.==
 
@@ -66,7 +55,9 @@ caption: Error bar variants as seen in the demo video above
 
 > Small in scope, but the change people had been asking for.
 
-==Since this was an internal improvement that people really wanted, many of the engineers and QA testers were praising this change, despite its size in the grand scheme of software at ForeFlight. This was my first collaboration with the people in product design; lots of great feedback came from these meetings I set up.==
+Since this was an internal improvement that people really wanted, many of the engineers and QA testers were praising this change, despite its size in the grand scheme of software at ForeFlight.
+
+==This was my first collaboration with product design, and lots of great feedback came from the meetings I set up.==
 
 ## Track Logs
 
@@ -76,21 +67,14 @@ While ForeFlight’s iPad app allowed mid-flight pilots to seamlessly link their
 
 Pilots need to connect these systems to automate their flight time calculations, attach visual debriefing data to their permanent records, and consolidate fragmented tracking data — like a multi-leg cross-country trip or an interrupted recording — into a single, clean logbook entry.
 
-### Automating Accuracy
-
-Track logs capture exact telemetry — takeoff time, landing time, route, and distance. By linking a log directly to a logbook entry, pilots eliminate manual data entry, reduce the math required to calculate exact flight hours, and prevent human error.
-
-### Consolidating Fragmented Journeys
-
-A pilot’s day might consist of multiple short hops (e.g., flying from airport A to B, grabbing lunch, then flying to C), or a single flight might get split into multiple Track Logs if the iPad overheats or the app is accidentally paused. Linking multiple Track Logs into one logbook entry allows the pilot to accurately record the entire day’s journey or fix fragmented data without creating cluttered, redundant logbook entries.
-
-### Post-Flight Debriefing
-
-A logbook is a training tool. By attaching the track log, a pilot (or their flight instructor) can look back at an entry months later and visually review the exact path flown, including practice maneuvers, holding patterns, and approach vectors.
-
-### Proof of Experience
-
-Aviation is highly regulated. Having GPS-backed telemetry explicitly linked to a logbook entry provides undisputed proof of the flight for insurance purposes, FAA currency requirements, or check-ride preparations.
+```audit
+title | Why pilots link a Track Log to their logbook
+columns | 2
+theme | Automating accuracy | Track logs capture exact telemetry: takeoff time, landing time, route, and distance. Linking a log directly to a logbook entry eliminates manual data entry, reduces the math required to calculate exact flight hours, and prevents human error.
+theme | Consolidating fragmented journeys | A pilot’s day might be several short hops, or one flight split into several Track Logs when the iPad overheats or the app is paused. Linking them into one entry records the whole journey without cluttered, redundant entries.
+theme | Post-flight debriefing | A logbook is a training tool. With the track log attached, a pilot (or their flight instructor) can review the exact path flown months later, including practice maneuvers, holding patterns, and approach vectors.
+theme | Proof of experience | Aviation is highly regulated. GPS-backed telemetry linked to a logbook entry is undisputed proof of the flight for insurance, FAA currency requirements, or check-ride preparation.
+```
 
 ## The Flow
 
@@ -174,7 +158,11 @@ recommended: 68ME → 68ME
 
 > Reversing the flow: start from the track log you clicked.
 
-==So what I did differently with the final designs is reverse the process. Instead of getting confused about if you’re linking a track log to a logbook or the other way around, you will instead link the track log you have clicked before even entering the modal.==
+So what I did differently with the final designs is reverse the process, so there’s no confusion about whether you’re linking a track log to a logbook or the other way around.
+
+```decision
+Link the track log you clicked, before the modal even opens.
+```
 
 ```logbook
 title: Add to Logbook
@@ -239,5 +227,13 @@ Try it out above, see how both feel.
 What’s not in this case study is the code itself and a few screens of the logbook data getting imported. Unfortunately, I don’t have any screenshots of those sections and because I’m under NDA I cannot show any code, given that my job was code-heavy and less design-oriented (despite my want and desire to design UI more).
 
 I hope the prototypes above make up for the lack of code. On the topic of code itself, the project took about 6 weeks to create, and during the last week I redid the entire project. ==The comparison above was that last week of time before demo day. I re-designed it and hand coded the logic behind it.==
+
+### The project in numbers
+
+```stats
+6 weeks | To build the Track Log and logbook link
+1 week | To redesign and rebuild it before demo day
+7 | Passes at the link modal
+```
 
 ForeFlight was a wonderful working environment to expand my passion for code. I’m appreciative that they let me have weekly meetings with the Product Design team so that they could critique my work.

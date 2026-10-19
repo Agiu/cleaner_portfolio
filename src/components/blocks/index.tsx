@@ -1,14 +1,23 @@
 import type { ComponentType } from 'react'
+import { AcademicSlug } from './AcademicSlug'
+import { Audit } from './Audit'
+import { ImageCarousel, PersonaCarousel } from './Carousel'
 import { ContourModel } from './ContourModel'
+import { Decision } from './Decision'
+import { ImageCompare } from './ImageCompare'
+import { InsightToggle } from './InsightToggle'
 import { ErrorBars } from './ErrorBars'
 import { LinkFlow } from './LinkFlow'
 import { LinkSubmenu } from './LinkSubmenu'
 import { LogbookCompare } from './LogbookCompare'
 import { LogbookPicker } from './LogbookPicker'
 import { QuoteGrid } from './QuoteGrid'
+import { Renames } from './Renames'
 import { Insights, LinkButton, Notice, Statements, Stats } from './TextBlocks'
 import { TrackStream } from './TrackStream'
+import { TriAxisDrawing } from './TriAxisDrawing'
 import { VariantStrip } from './VariantStrip'
+import { VideoLoop } from './VideoLoop'
 import { YouTubeEmbed } from './YouTubeEmbed'
 
 type BlockProps = { name: string; content: string }
@@ -21,6 +30,7 @@ type BlockProps = { name: string; content: string }
 const blocks: Record<string, { component: ComponentType<BlockProps>; wide: boolean; beside?: boolean }> = {
   stream: { component: TrackStream, wide: false },
   masters: { component: Notice, wide: false },
+  academic: { component: AcademicSlug, wide: true },
   recruiter: { component: Notice, wide: false },
   stats: { component: Stats, wide: false },
   button: { component: LinkButton, wide: false },
@@ -28,6 +38,15 @@ const blocks: Record<string, { component: ComponentType<BlockProps>; wide: boole
   hmw: { component: Statements, wide: false },
   rules: { component: Statements, wide: false },
   questions: { component: Statements, wide: false },
+  decision: { component: Decision, wide: true },
+  audit: { component: Audit, wide: true },
+  carousel: { component: ImageCarousel, wide: true },
+  personas: { component: PersonaCarousel, wide: true },
+  'insight-toggle': { component: InsightToggle, wide: true },
+  video: { component: VideoLoop, wide: true },
+  compare: { component: ImageCompare, wide: true },
+  renames: { component: Renames, wide: true },
+  'tri-axis': { component: TriAxisDrawing, wide: true },
   quotes: { component: QuoteGrid, wide: true },
   '3d-model': { component: ContourModel, wide: true },
   youtube: { component: YouTubeEmbed, wide: true },

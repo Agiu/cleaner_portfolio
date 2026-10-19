@@ -68,7 +68,7 @@ export function expandToHero(media: HTMLElement, pageRoot: HTMLElement | null): 
     // it sits at this progress, not the midpoint (only equal when the hero is a full viewport tall).
     const heroProgress = window.innerHeight / (window.innerHeight + heroHeight)
 
-    tl.to(overlay, { left: frame.left + sidebar, top: 0, width: heroWidth, height: heroHeight }, 0)
+    tl.to(overlay, { left: frame.left + sidebar, top: 0, width: heroWidth, height: heroHeight, borderRadius: 0 }, 0)
       // Settle the inner layers to the hero's resting state (no hover zoom, its scroll-0 parallax).
       // Main rows have .cs-* layers; More Work cards are a MediaBlock, the same as the hero.
       .to(clone.querySelectorAll('.cs-hover, .cs-media-scale, .media-scale'), { scale: 1 }, 0)
@@ -77,6 +77,10 @@ export function expandToHero(media: HTMLElement, pageRoot: HTMLElement | null): 
       // A More Work card's title and summary come off the image as it grows.
       .to(clone.querySelector('.cs-compact-info'), { autoAlpha: 0, duration: 0.4, ease: 'power2.out' }, 0)
     if (zoom !== 1) tl.fromTo(clone.querySelectorAll('img, video'), { scale: zoom }, { scale: 1 }, 0)
+
+    // A built cover (covers/) can wash out to its hero's ground as it grows, handing off to it.
+    const wash = clone.querySelector('.cs-cover-wash')
+    if (wash) tl.to(wash, { autoAlpha: 1, duration: 0.8, ease: 'power2.inOut' }, 0.1)
 
     // Placeholder-only mock-up card (absent once a real image is set).
     const float = clone.querySelector('.cs-float')
@@ -91,6 +95,27 @@ export function expandToHero(media: HTMLElement, pageRoot: HTMLElement | null): 
         .to(q('.sidebar--home'), { backgroundColor: '#ffffff', duration: 0.8, ease: 'power2.inOut' }, 0.1)
     }
   })
+}
+
+/**
+ * Leave for a page outside this app (a prebuilt site in public/, like /who): the window fades to
+ * `color` (the other site's ground), then the browser loads it. Coming back with the browser's
+ * back button (a page restored from its cache) clears the fade.
+ */
+export function fadeToSite(href: string, color: string) {
+  const veil = document.createElement('div')
+  veil.className = 'site-veil'
+  veil.style.background = color
+  document.body.appendChild(veil)
+  const clear = (e: PageTransitionEvent) => {
+    if (!e.persisted) return
+    veil.remove()
+    window.removeEventListener('pageshow', clear)
+  }
+  window.addEventListener('pageshow', clear)
+  const go = () => window.location.assign(href)
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return go()
+  gsap.fromTo(veil, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.7, ease: 'power2.inOut', onComplete: go })
 }
 
 /** Fade the overlay off once the real hero is in place underneath. */

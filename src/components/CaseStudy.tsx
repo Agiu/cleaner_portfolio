@@ -4,7 +4,11 @@ import type { CaseStudy as CaseStudyData } from '../data/caseStudies'
 import { hasRevealed, markRevealed } from '../lib/revealed'
 import { restoreVideoTime, saveVideoTime } from '../lib/videoTime'
 import { gsap, useGSAP } from '../lib/gsap'
-import { canExpand, expandToHero } from '../lib/pageTransition'
+import { canExpand, expandToHero, fadeToSite } from '../lib/pageTransition'
+import { VIDEO_FADE_MS } from './MediaBlock'
+import { coverScenes } from './covers'
+import { unlocked } from '../lib/protectedPages'
+import { requestUnlock } from '../lib/unlockGate'
 
 type Props = {
   study: CaseStudyData
@@ -24,20 +28,42 @@ export function CaseStudy({ study, settled = false }: Props) {
   const root = useRef<HTMLElement>(null)
   const video = useRef<HTMLVideoElement>(null)
   // A study with a video plays it while the row is hovered; the expand carries it into the hero.
+  // It fades in once it's actually playing, and keeps playing while it fades back out.
   const [playing, setPlaying] = useState(false)
+  const hovered = useRef(false)
+  const pauseTimer = useRef(0)
   const hoverVideo = (on: boolean) => {
     const v = video.current
     if (!v || !window.matchMedia('(hover: hover)').matches) return
-    if (on) v.play().catch(() => {})
-    else v.pause()
-    setPlaying(on)
+    hovered.current = on
+    clearTimeout(pauseTimer.current)
+    if (on) {
+      if (v.paused) v.play().catch(() => {})
+      else setPlaying(true) // caught mid fade-out, still running
+    } else {
+      setPlaying(false)
+      pauseTimer.current = window.setTimeout(() => v.pause(), VIDEO_FADE_MS)
+    }
   }
   const navigate = useNavigate()
-  const to = `/case-study/${study.slug}`
+  const to = study.href?.url ?? `/case-study/${study.slug}`
+  const CoverScene = coverScenes[study.slug]
 
   // Plain clicks grow the image into the case study hero before navigating;
   // modified clicks (new tab etc.), mobile and reduced motion navigate normally.
   const onClick = async (e: React.MouseEvent) => {
+    // A study that opens another site fades into it.
+    if (study.href) {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      e.preventDefault()
+      return fadeToSite(study.href.url, study.href.color)
+    }
+    // A protected study asks for its password first, here on the Work page.
+    if (study.protected && !unlocked(study.slug)) {
+      e.preventDefault()
+      if (!(await requestUnlock(study.slug, study.title))) return
+      if (!canExpand()) return navigate(to)
+    }
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || !canExpand()) return
     const media = root.current?.querySelector<HTMLElement>('.cs-media')
     if (!media) return
@@ -180,25 +206,30 @@ export function CaseStudy({ study, settled = false }: Props) {
         <div className="cs-media">
           <div className="cs-hover">
             <div className="cs-media-scale">
-              <div className="cs-parallax">
-                {study.image ? <img src={study.image} alt="" /> : <div className="cs-placeholder" />}
-                {study.video && (
-                  <video
-                    ref={video}
-                    className={`media-video${playing ? ' is-started' : ''}`}
-                    src={study.video}
-                    data-start={study.videoStart}
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                    disablePictureInPicture
-                    aria-hidden="true"
-                    onLoadedMetadata={(e) => restoreVideoTime(e.currentTarget)}
-                    onTimeUpdate={(e) => saveVideoTime(e.currentTarget)}
-                  />
-                )}
-              </div>
+              {CoverScene ? (
+                <CoverScene />
+              ) : (
+                <div className="cs-parallax">
+                  {study.image ? <img src={study.image} alt="" /> : <div className="cs-placeholder" />}
+                  {study.video && (
+                    <video
+                      ref={video}
+                      className={`media-video${playing ? ' is-started' : ''}`}
+                      onPlaying={() => hovered.current && setPlaying(true)}
+                      src={study.video}
+                      data-start={study.videoStart}
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      disablePictureInPicture
+                      aria-hidden="true"
+                      onLoadedMetadata={(e) => restoreVideoTime(e.currentTarget)}
+                      onTimeUpdate={(e) => saveVideoTime(e.currentTarget)}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </div>
           {!study.image && (

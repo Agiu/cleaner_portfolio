@@ -1,0 +1,14 @@
+{
+  "summary": "A summer as a software engineer intern on the debrief team, most importantly building a data-heavy system that links flight telemetry to pilots’ logbooks.",
+  "heroLine": "A summer on ForeFlight’s debriefing team, linking flight data to pilots’ logbooks.",
+  "outcomes": [
+    "Shipped bug fixes to the digital logbook and flight-plan review flows, sourced from support tickets and pilot session recordings.",
+    "Led engineering on a Track Log and Logbook communication system, auto-filling flight time, route, and aircraft telemetry into an archival logbook.",
+    "Partnered with product design on the review and confirm flow pilots use to approve an auto-matched entry, covering touch-and-goes, diversions, and multi-leg flights."
+  ],
+  "advisors": [
+    { "name": "Jason Cooper", "role": "Engineering Manager", "linkedin": "" },
+    { "name": "Haley Nelson", "role": "Senior Product Designer", "linkedin": "" },
+    { "name": "Jeremy Miller", "role": "Staff Product Designer", "linkedin": "" }
+  ]
+}

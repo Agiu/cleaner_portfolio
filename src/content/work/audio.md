@@ -1,36 +1,30 @@
 <!--
-  Case study page content. The sidebar (year, title, summary, outcomes, team, advisors,
-  hero image/video) lives in src/data/caseStudies.ts — only the right-hand column is here.
-
-  ## Heading        new section + its entry in the sidebar Contents
-  > Lead line       the large statement under a heading; a > anywhere later is a small note
-  Paragraphs        body copy; **bold**, *italic*, ==highlight==, [links](https://…) and - lists work
-  ### Subheading    a smaller heading inside a section
-  ![caption](…)     an image, with its alt text as a caption. Consecutive lines = one row
-                    (1 full width, 2 side by side); a blank line starts a new row.
-  ![caption](… "still clear 16/9")   row options: still = no parallax/crop, clear = no grey
-                    placeholder (transparent cut-outs), plus an aspect ratio
-  ```stats          a block (masters, stats, button, insights, hmw, quotes, 3d-model, youtube…);
-  …                 see src/components/blocks for each one's lines
-  ```
+  Project Open. Sidebar details (year, title, summary, outcomes, team, hero video) live in
+  src/data/caseStudies.ts. Set in the v2 layouts: the syntax and layouts are listed at the top
+  of src/lib/caseStudyMarkdown.ts.
 -->
 
 ## Problem
 
-> Earbuds trap heat and fall out. Over-ear headphones are too heavy to wear all day. Nothing sits in between.
-
-```masters
+```academic
+This is academic work completed while attending the University of Washington for my masters
 ```
 
-![Project Open](https://media.kaelub.com/Audio/headphone_render.jpg "still 3508/1818")
+![Rendered by Kaiyo Fan](https://media.kaelub.com/Audio/headphone_render.jpg "still 3508/1818")
+
+> Earbuds trap heat and fall out. Over-ear headphones are too heavy to wear all day. Nothing sits in between.
 
 We’ve all experienced issues with comfort among our headphones and earbuds. Many companies have attempted to solve universal comfort issues across all mediums — Virtual Reality, Personal handheld devices, and more with little to no success.
 
-![On right: Human headphones which failed due to a few factors but majorly around comfort, on left: Apple’s AirPods Max which sound great but will cause fatigue after extended use due to different hair styles of users](https://media.kaelub.com/Audio/comparison.png "still 2740/938")
+![Left: Human headphones, which failed due to a few factors but mostly comfort. Right: Apple’s AirPods Max, which sound great but cause fatigue after extended use, depending on the user’s hair.](https://media.kaelub.com/Audio/comparison.png "still 2740/938")
 
 My team of design friends and I came together to try and address these frustrations with ==a new form factor design that maintains continuous comfort, while mitigating the common issues seen in typical audio form factors.==
 
 This project ended up turning into a big lesson on team dynamics, team management, and learning on the fly to create a high quality product. Collectively we all had interests in wearable devices and we thought there could be something within the audio space, however we had little to no experience in industrial design.
+
+```youtube
+2mzSQccg3mY
+```
 
 ## Validating our assumptions
 
@@ -94,15 +88,15 @@ View Research Analysis | https://www.figma.com/board/seMvdbF8VlQxQLFU1DzH1T/CKHA
 
 We centered many of our inspirational material around things we found on the internet and sketches we conjured up ourselves. Personally, I went after VR headsets which allowed for over-ear hearing much like what you see on the Valve Index, which was actually one of my references. These wearables don’t exactly sit on your ear, but have the same quality as regular open-back headphones.
 
-![My “beautiful” sketches for possible designs of our new audio wearable.](https://media.kaelub.com/Audio/image_placeholder_3.JPG "still 863/747")
+![My “beautiful” sketches for possible designs of our new audio wearable.](https://media.kaelub.com/Audio/image_placeholder_3.JPG "still side 863/747")
 
 Many of my teammates thought the utilitarian idea was striking, but a little too controversial for the public. The joint system I built could work for all head sizes, however aesthetically it looks quite annoying to view and may add head pressure, which is where we want to move away from when focusing on our multiple how might we’s.
+
+![Small sketch by Hannah](https://media.kaelub.com/Audio/Bandless.png "still clear side 2000/1414")
 
 ### Removing a Common Audio Wearable Trope
 
 The idea of a bandless headset kept returning during ideation. Inspired by VR headsets that hover speakers over the ears rather than pressing on them, we realized that removing the band was the ultimate way to achieve a truly lightweight, comfortable form factor.
-
-![Small sketch by Hannah](https://media.kaelub.com/Audio/Bandless.png "still clear 2000/1414")
 
 After much deliberation and indecisiveness about how we can get a bandless headset on someone’s ears without it falling off we decided to just “yolo” it as some of us have said. ==In actuality, we split as a group to find out if we could still add in a headband just to make our designing lives easier. It did not.==
 
@@ -110,29 +104,33 @@ After much deliberation and indecisiveness about how we can get a bandless heads
 
 At the end of the day, the spring-lock mechanism was too difficult for me to design — and given our constraints around time, we needed to act fast with our prototyping. Creating a mechanism like this will take at least two of us a few days to even get to finishing the 3D model.
 
-==We decided to fully commit to the bandless design.==
+```decision
+We decided to fully commit to the bandless design.
+```
 
 ## Prototyping & Iteration
 
-### A Transition to 3D Iteration
+> Three weeks of slow prints and sore ears, until a teammate’s “donut” showed the way out.
 
 ![From drawing to 3D prototype](https://media.kaelub.com/Audio/image_placeholder_4.JPG "still 1475/723")
 
+### A Transition to 3D Iteration
+
 I started with the foundation: how it will wrap around the ear. I created my first Blender modeling project and iterated over and over again after a design one of my group members made (Meera). A few of our group members delegated themselves to read some articles on common ear sizes, which influenced how I shaped the curves on the 3D model. ==Many bumps exist on the ear, different lobe types as well, so I needed to be inclusive of many of those attributes.== The large circle on the right of the 3D model acted as a counter weight for the ear — alleviating the weight from pushing onto the back of the ear, which feels uncomfortable.
 
-![First iteration of the foundation. This allowed the ear to poke through the middle and sit on the cranium.](https://media.kaelub.com/Audio/image_placeholder_5.png "still clear 16/9")
+![First iteration of the foundation. This allowed the ear to poke through the middle and sit on the cranium.](https://media.kaelub.com/Audio/image_placeholder_5.png "still clear 724/1090")
 
 While structurally a good start, the execution failed in user testing. The rough 3D printing filament created harsh edges, causing sharp pain just from putting the device on. The difficulties about this design was figuring out where to put the speaker head and how to put on the headphone foundation with ease.
 
 I had the foundation created, but attaching a speaker seems so counter intuitive in this state, and putting it on was causing some skin irritation as said by some user testers. By this moment in time we had already eaten through three weeks and needed to come up with other ideas quickly. Iteration with 3D was also slow. ==It wasn’t my first time messing around with 3D printing, however each print took quite some time due to the traffic each printer was having.==
+
+![Getting rid of literal pain points on our prototype](https://media.kaelub.com/Audio/image_placeholder_6.JPG "still side right 878/688")
 
 ### See It From Another Perspective
 
 The group and I were stuck, iteration became increasingly slow as our ideas and prototyping came out slowly. We took a few days from each other to decompress and even stopping our arguments about what is the best design choice for us in this moment. It was never a clear ending. ==It wasn’t until someone else in my group finished an idea he had, which allowed me to see the project from a different perspective.==
 
 As I was stuck on this design; stuck on the simplicity of taking it on and off. Other group members worked on a design that was incredibly easy to put on and take off… However, it could easily pop off the ear given enough bump. They called it the donut, however what was appealing to me wasn’t the casing around it, but the foundation. There’s no inner-ear support. Putting it on was quite literally dropping it on the top of your ear.
-
-![Getting rid of literal pain points on our prototype](https://media.kaelub.com/Audio/image_placeholder_6.JPG "still 878/688")
 
 ## The breakthrough
 
@@ -144,7 +142,8 @@ During this process a breakthrough occurred and we called it the “Tri Axis Sup
 
 By adding foam to these cylinders, they acted as padding that gently pushed against the ear and cranium. This pressure was just enough to keep the entire device highly secure without needing invasive inner-ear support and would allow pressure to move from the ear and instead onto the side of the head itself.
 
-![Integration of tri-axis support cylinders, securing the device comfortably without inner-ear pieces](https://media.kaelub.com/Audio/image_placeholder_7.JPG "still 1166/862")
+```tri-axis
+```
 
 So I cut the inner bit of the ear foundation out, completely. And as it turns out, the cylinder support I created actually does more than originally thought. Those cylinders with foam, acting as padding between the cranium and headphone prototype, push against the ear and cranium just enough to keep the whole device extra-secure.
 
@@ -158,11 +157,13 @@ This was it. I modeled a speaker with holes for wiring that sat right above the 
 I left it on for the whole day accidentally while filming the project video and I kept forgetting they were on me… it’s super comfortable. | Alexander Akande
 ```
 
-![Final Headphones Render](https://media.kaelub.com/Audio/image_placeholder_8.png "4/3")
+![A still from the pitch video shoot](https://media.kaelub.com/Audio/image_placeholder_8.png "1745/1335")
 
 ## Final spec
 
 > A bandless headset, sized to any ear, built for all-day wear.
+
+![](https://media.kaelub.com/Audio/image_placeholder_9.png "still clear right 1484/1582")
 
 - **The Design:** A highly comfortable, small, bandless headset that avoids pressure points and is printed in different sizes to accommodate all users.
 - **Materials:** Constructed from PTB Plastic to ensure a durable and lightweight fit.
@@ -171,13 +172,9 @@ I left it on for the whole day accidentally while filming the project video and 
 
 ==These audio wearables are perfect for commuting publicly and for comfort.==
 
-![](https://media.kaelub.com/Audio/image_placeholder_9.png "still clear 16/9")
-
-```youtube
-2mzSQccg3mY
-```
-
 ## Reflection
+
+> What I’d do with more time, and the one thing I didn’t design for.
 
 Moving forward, I would have loved more time to flesh out the design further, particularly the interior of the form factor. My teammates had established viable interior chips by the end of the project, but we only had about two days to work with them. A significant portion of our time was also consumed by repeated printing iterations to nail the tiered fits, which cut into valuable design time.
 

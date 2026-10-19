@@ -6,8 +6,9 @@ import { isPrototype } from '../components/blocks'
 //   ## Heading          starts a section; also its entry in the sidebar's Contents nav.
 //                       Optional id: "## Sharpening the Focus {#focus}" (defaults to a slug of the title).
 //                       "## Heading | Lead line" is shorthand for a heading followed by "> Lead line".
-//   > One line          the large lead statement, when it opens the section. Any later > is a
-//                       note: a small aside in the copy column.
+//   > One line          the large lead statement, when it's the section's first text (images
+//                       and blocks may come before it). Any later > is a note: a small aside in
+//                       the copy column.
 //   Plain paragraphs    body copy. **bold**, *italic*, ==highlight== and [links](https://…) work.
 //   ### Subheading      a smaller heading inside the section.
 //   ![caption](src)     an image; its alt text shows as a small caption under it. Images on
@@ -22,6 +23,9 @@ import { isPrototype } from '../components/blocks'
 //   ![alt](src "side 977/925")
 //                       "side": instead of a full-width row, the image sits in the left column
 //                       beside the text that follows it (until the next image row).
+//                       In the v2 layouts a single portrait image (ratio under 1) fills half the
+//                       block beside the text that follows it, on the left, or with "right" on
+//                       the right.
 //   ```flow             an interactive prototype; the fence name picks the component and the
 //   …                   fence body is its content (see src/components/blocks). ```youtube is one.
 //   ```
@@ -31,8 +35,33 @@ import { isPrototype } from '../components/blocks'
 //   …                   file name for the block's header bar.
 //   ```
 //   ![Title](track.mp3) an audio track. Consecutive lines make one track list.
+//
+// The v2 layouts (Figma 495:77), turned on per study with `layout: 'v2'` in src/data/caseStudies.ts.
+// The same Markdown, laid out in the new design system:
+//
+//   ## Heading + > Lead  the section's title as a small grey label over its lead in bold, then
+//                       the copy in one centred column.
+//   Image rows          edge to edge, side by side at their own proportions. Give every image its
+//                       pixel size ("still 1890/766") so it's never cropped.
+//   "side" / "side right"
+//                       a small image held in view beside the copy that follows it; the copy
+//                       takes the far column (54% in, or the image rows' left edge when "right").
+//   A portrait image    (ratio under 1) runs from the site's edge to the copy beside it; "right"
+//                       puts it on the right.
+//   ==Only a highlight== a paragraph that's nothing but a highlight stands alone as a statement.
+//   ```academic         where the work was done, over a field of mortarboards; it opens its section.
+//   ```decision         a turning point: a dark panel with the line centred in the display type.
+//   ```stats            a dark panel of counting figures, taking the subheading just before it
+//                       and a ```button just after.
+//   ```hmw / rules / questions
+//                       a dark panel for a statement list, with a ```button just after.
+//   Audio tracks, code  a dark panel each, introduced by the subheading (and one paragraph)
+//                       just before them.
+//   ```youtube and other wide blocks run to the image rows' edges. Every study ends with two
+//   others to read next.
 
-export type MediaImage = { src: string; alt: string }
+/** `aspect`: the image's own ratio, from its title (a row's images can differ side by side). */
+export type MediaImage = { src: string; alt: string; aspect?: string }
 export type AudioTrack = { src: string; title: string }
 
 export type SectionBlock =
@@ -49,6 +78,7 @@ export type SectionBlock =
       still: boolean
       clear: boolean
       side: boolean
+      right: boolean
       aspect?: string
       maxWidth?: number
     }
@@ -102,14 +132,16 @@ function asMediaRow(p: Tokens.Paragraph): SectionBlock | null {
     return { kind: 'audio', tracks: images.map((img) => ({ src: img.href, title: img.text })) }
   }
   const options = images.map((img) => img.title ?? '').join(' ')
-  const aspect = options.match(/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?/)?.[0].replace(/\s/g, '')
+  const ratioIn = (s: string) => s.match(/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?/)?.[0].replace(/\s/g, '')
+  const aspect = ratioIn(options)
   const aspectWidth = aspect ? Number(aspect.split('/')[0]) : 0
   return {
     kind: 'media',
-    images: images.map((img) => ({ src: img.href, alt: img.text })),
+    images: images.map((img) => ({ src: img.href, alt: img.text, aspect: ratioIn(img.title ?? '') })),
     still: /\bstill\b/.test(options),
     clear: /\bclear\b/.test(options),
     side: /\bside\b/.test(options),
+    right: /\bright\b/.test(options),
     aspect,
     // Written in pixels (863/747 rather than 16/9): the image's own size, so it's never
     // stretched past it — a small image sits centred at its own width instead of full bleed.
@@ -150,7 +182,11 @@ export function parseCaseStudy(source: string): CaseStudySection[] {
         const html = inline((token.tokens ?? []).flatMap((t) => ('tokens' in t ? t.tokens ?? [] : [t])))
         const last = current.blocks[current.blocks.length - 1]
         if (before?.type === 'code' && last?.kind === 'prototype' && !last.aside) last.aside = html
-        else current.blocks.push({ kind: current.blocks.length ? 'note' : 'lead', html })
+        // The lead is the section's first text: images and blocks may come before it.
+        else {
+          const opening = current.blocks.every((b) => b.kind === 'media' || b.kind === 'prototype')
+          current.blocks.push({ kind: opening ? 'lead' : 'note', html })
+        }
         break
       }
       case 'paragraph':

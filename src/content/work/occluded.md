@@ -1,17 +1,20 @@
 <!--
   Occluded Forest. Sidebar details (title, year, summary, outcomes, team, hero video) live in
-  src/data/caseStudies.ts; see wos.md for the Markdown conventions. Audio tracks are image
-  syntax pointing at an .mp3; code fences take "<language> <file name>".
-  Hero video by Hayden Kim Dernbach.
+  src/data/caseStudies.ts. Set in the v2 layouts: the syntax and layouts are listed at the top
+  of src/lib/caseStudyMarkdown.ts. Hero video by Hayden Kim Dernbach.
 -->
 
 ## Overview
 
-> Developing a tangible presence in VR using Unity.
+```academic
+This is academic work completed while attending the University of Washington for my masters
+```
 
-### Our senses are important for a sense of place
+> Our senses are important for a sense of place.
 
-Looking through a VR headset, it’s easy to feel like you aren’t really there. When the world in front of you doesn’t acknowledge your main senses, sight and sound, it stays a picture instead of a place.
+Looking through a VR headset, it’s easy to feel like you aren’t really there, because the world in front of you doesn’t acknowledge your main senses: sight and sound.
+
+==When the world doesn’t acknowledge you, it stays a picture instead of a place.==
 
 As humans, we tend to feel a small narcissistic injury when something doesn’t acknowledge us, and an environment that doesn’t react to us is no exception. In VR that feeling is stronger, because everything else is so immersive.
 
@@ -23,7 +26,7 @@ Occluded Forest was envisioned by [Hayden Kim Dernbach](https://haydenkdernbach.
 
 Hayden’s environment has a frigid yet nostalgic color scheme, and I knew right away the atmosphere needed to match it with some mystery and brightness. I started on a small lo-fi soundtrack that fit the environment, along with short tones of acknowledgement from the animals around the forest.
 
-![Creating audio in Ableton](https://media.kaelub.com/Occluded/Abelton.png)
+![Creating audio in Ableton](https://media.kaelub.com/Occluded/Abelton.png "still 1890/766")
 
 ### Audio tracks
 
@@ -39,9 +42,9 @@ Ethereal tones and deep sub-bass help build a sense of place. The catch was the 
 
 In the experience, the player follows a path of glowing mushrooms, made by Macks, that leads to animated deer around the forest. The deer are hidden behind rocks and trees, and some branches are shaped like antlers, so the player might think a deer is just around the corner when it isn’t. When they find a real one, the forest needed to acknowledge it.
 
-Using the mushroom path as the trigger kills two birds with one stone. The mushrooms contrast with the snow, so players naturally stay on the path, and the path always ends somewhere a real deer is in view. In Unity, I placed a trigger box there that fires when the player walks into it.
-
 ![Unity’s collision box acting as a trigger](https://media.kaelub.com/Occluded/triggerbox.png "still side 977/925")
+
+Using the mushroom path as the trigger kills two birds with one stone. The mushrooms contrast with the snow, so players naturally stay on the path, and the path always ends somewhere a real deer is in view. In Unity, I placed a trigger box there that fires when the player walks into it.
 
 ### Coding it
 
@@ -82,6 +85,10 @@ public class playSoundonEnter : MonoBehaviour
 
 Looking back, sound did a lot of the work in making the forest feel like it knew the player was there. A small cue at the right moment, like the jingle when you find a deer, said more than another visual effect would have.
 
-I also tried taking that further with a head-following mechanic that only the deer would have, so they’d turn to look at you. In playtesting it was fascinating at first, but after a while it became creepy. That taught me acknowledgement has a limit: past a certain point, the world stops feeling alive and starts feeling like it’s staring at you.
+I also tried taking that further with a head-following mechanic that only the deer would have, so they’d turn to look at you. In playtesting it was fascinating at first, but after a while it became creepy. That taught me acknowledgement has a limit.
 
 With only three weeks, I couldn’t take it further. Given more time, I’d tie the head-following into the deer animations my teammates made, and tune it so the deer notice you without fixating on you.
+
+```decision
+Past a certain point, the world stops feeling alive and starts feeling like it’s staring at you.
+```

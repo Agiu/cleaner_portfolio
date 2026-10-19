@@ -1,17 +1,19 @@
 import { useEffect, useRef } from 'react'
 import type { Map as MapLibreMap, StyleSpecification } from 'maplibre-gl'
-import { gsap, useGSAP } from '../../lib/gsap'
 
 /*
  * The Who Owns Seattle case study hero: the opening of the live site at /who, rebuilt here rather
  * than shown as a picture. South Lake Union in 3D, every building, road and stretch of water in
- * the site's red on its paper, turning slowly under a grain that fades it out behind the
- * wordmark and lede. The map's style, camera and spin are the site's own (public/who), and
- * maplibre only loads once this hero is on the page.
+ * a greyish black (the live site's red, recoloured) on its paper, turning slowly under a grain. The
+ * paper is up from the first frame, covering the study's still and meeting the Work page card,
+ * which washes out to it as it grows in; the map fades in once its tiles are drawn. The map's
+ * style, camera and spin are the site's own (public/who), and maplibre only loads once this hero
+ * is on the page.
  */
 
 const PAPER = '#f4f4f2'
-const RED = '#e34948'
+/** The map's one ink, a greyish black, where the live site uses its red. */
+const INK = '#2e2e2c'
 /** Degrees the map turns per second. */
 const SPIN = 2.4
 const ROADS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'service']
@@ -22,8 +24,8 @@ const STYLE: StyleSpecification = {
   light: { anchor: 'viewport', color: '#ffffff', intensity: 0.4, position: [1.4, 230, 35] },
   layers: [
     { id: 'paper', type: 'background', paint: { 'background-color': PAPER } },
-    { id: 'park', type: 'fill', source: 'omt', 'source-layer': 'park', paint: { 'fill-color': RED, 'fill-opacity': 0.1 } },
-    { id: 'water', type: 'fill', source: 'omt', 'source-layer': 'water', paint: { 'fill-color': RED } },
+    { id: 'park', type: 'fill', source: 'omt', 'source-layer': 'park', paint: { 'fill-color': INK, 'fill-opacity': 0.1 } },
+    { id: 'water', type: 'fill', source: 'omt', 'source-layer': 'water', paint: { 'fill-color': INK } },
     {
       id: 'roads',
       type: 'line',
@@ -31,7 +33,7 @@ const STYLE: StyleSpecification = {
       'source-layer': 'transportation',
       filter: ['in', ['get', 'class'], ['literal', ROADS]],
       paint: {
-        'line-color': RED,
+        'line-color': INK,
         'line-opacity': 0.32,
         'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 11, 0.3, 16, 3],
       },
@@ -43,7 +45,7 @@ const STYLE: StyleSpecification = {
       'source-layer': 'building',
       minzoom: 12,
       paint: {
-        'fill-extrusion-color': RED,
+        'fill-extrusion-color': INK,
         'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
         'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
         'fill-extrusion-opacity': 0.88,
@@ -53,24 +55,7 @@ const STYLE: StyleSpecification = {
 }
 
 export function WosSite() {
-  const root = useRef<HTMLDivElement>(null)
   const mapEl = useRef<HTMLDivElement>(null)
-
-  // The paper comes up over the card's still, then the copy settles in; the map fades in on its
-  // own once its tiles are drawn.
-  useGSAP(
-    () => {
-      gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
-        const q = gsap.utils.selector(root)
-        gsap
-          .timeline({ defaults: { ease: 'expo.out' } })
-          .from(root.current, { autoAlpha: 0, duration: 0.7, ease: 'sine.inOut' }, 0)
-          .from(q('.wos-site-title'), { autoAlpha: 0, y: 24, duration: 1.2 }, 0.35)
-          .from(q('.wos-site-lede'), { autoAlpha: 0, y: 16, duration: 1.2 }, 0.5)
-      })
-    },
-    { scope: root },
-  )
 
   useEffect(() => {
     const el = mapEl.current!
@@ -146,19 +131,9 @@ export function WosSite() {
   }, [])
 
   return (
-    <div ref={root} className="wos-site">
+    <div className="wos-site">
       <div ref={mapEl} className="wos-site-map" aria-hidden="true" />
       <div className="wos-site-grain" aria-hidden="true" />
-      <div className="wos-site-copy">
-        <img className="wos-site-title" src="/who/assets/wos-wordmark.svg" width="355" height="277" alt="Who Owns Seattle" />
-        <p className="wos-site-lede">
-          View how property is traded around the Seattle area through a data visualizer, starting with the{' '}
-          <a href="https://visitseattle.org/neighborhoods/south-lake-union/" target="_blank" rel="noreferrer">
-            South Lake Union
-          </a>{' '}
-          (SLU) neighborhood.
-        </p>
-      </div>
     </div>
   )
 }

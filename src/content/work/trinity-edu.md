@@ -1,23 +1,10 @@
 <!--
-  Case study page content. The sidebar (year, title, summary, outcomes, team, advisors,
-  hero image/video) lives in src/data/caseStudies.ts — only the right-hand column is here.
-
-  ## Heading        new section + its entry in the sidebar Contents
-  > Lead line       the large statement under a heading; a > anywhere later is a small note
-  Paragraphs        body copy; **bold**, *italic*, ==highlight==, [links](https://…) and - lists work
-  ### Subheading    a smaller heading inside a section
-  ![caption](…)     an image, with its alt text as a caption. Consecutive lines = one row
-                    (1 full width, 2 side by side); a blank line starts a new row.
-  ![caption](… "still clear 16/9")   row options: still = no parallax/crop, clear = no grey
-                    placeholder (transparent cut-outs), plus an aspect ratio
-  ```stats          a block (masters, stats, button, insights, hmw, quotes, 3d-model, youtube…);
-  …                 see src/components/blocks for each one's lines
-  ```
+  Trinity University. Sidebar details (year, title, summary, outcomes, team, advisors, hero image)
+  live in src/data/caseStudies.ts. Set in the v2 layouts: the syntax and layouts are listed at the
+  top of src/lib/caseStudyMarkdown.ts.
 -->
 
 ## Context
-
-> Trinity is on the rise, but its digital presence hasn’t caught up.
 
 ==Founded in 1869==, Trinity University sits on a 125-acre hilltop campus near downtown San Antonio and is consistently ranked among the nation’s top liberal arts colleges. The academic experience centers on close mentorship, with a student-to-faculty ratio around 9 to 1 across a student body of roughly 2,500 to 2,600.
 
@@ -48,7 +35,11 @@ Our data showed that most people visiting the site were prospective students rat
 
 ### The outcome
 
-**This project’s scope grew and became the foundation for a full site redesign.** ==Leadership changed direction mid-project, folding this work into a full site redesign: the journey maps, the AI audit, and small bits of the design system all carried forward into that larger effort.==
+Leadership changed direction mid-project, folding this work into a full site redesign: ==the journey maps, the AI audit, and small bits of the design system all carried forward into that larger effort.==
+
+```decision
+This project’s scope grew and became the foundation for a full site redesign.
+```
 
 ## The User Experience Goal | Not “make it look nice.” Make it fast to skim.
 
@@ -62,8 +53,6 @@ Designing for AI would mean making more bulleted lists and less marketing-heavy 
 
 > Page audits, outside research, and five journey maps.
 
-### Page audit and outside examples
-
 I started by seeing what research had already been completed, starting with independent agency audits.
 
 We started with an audit of which webpages needed the most work, and opted to start at the top — the schools. We researched other institutions’ school webpages, ideally liberal-arts focused, then built four different example sheets, one per Trinity school, each averaging about six examples to choose from for excellent design and UX standards. Many of those designs came from Ivy League or well-known liberal arts institutions.
@@ -74,13 +63,25 @@ Essentially: a lot of analysis of what other websites are doing well and what th
 
 We had a third-party team come in and audit the current website, and their findings only reinforced the narrative that a redesign was needed. Some issues we already knew about going in, but new ones crept up too.
 
-![](https://media.kaelub.com/Trinity-Redesign/r1.jpg "still 698/412")
-![](https://media.kaelub.com/Trinity-Redesign/r2.jpg)
-
-![](https://media.kaelub.com/Trinity-Redesign/r3.jpg "still 698/366")
-![](https://media.kaelub.com/Trinity-Redesign/r4.jpg)
-
-![Independent agency research audits that our website revisions were based on.](https://media.kaelub.com/Trinity-Redesign/r5.jpg "still 698/402")
+```audit
+title | What an independent audit found on the Neidorff School of Business pages
+pair | A concise homepage with clear direction and simple messaging | Say (and show) what sets the school apart right away: interviewees confused it with Trinity’s other colleges
+pair | Videos on the homepage and About page | The homepage video is dry and overly long; make it state the school’s difference, compellingly
+pair | Top navigation isn’t overwhelming | Not every tab leads to a page of its own, so some information is hard to find
+pair | A good starting point to work from | Modernize the look, set the school apart, and add fresh calls to action
+pair | The blogs offer relevant insights and good content | Reframe News and Events as the blog hub it already is
+theme | Video | Split long videos into short snippets, and lead Research with Faculty and Study Abroad with video.
+theme | Findability | Pages hold the right information but run long; link out to dedicated pages so it’s easy to find.
+theme | Degree programs | The Minors page repeats the homepage; list every program instead of hiding them in a dropdown.
+theme | Calls to action | Link Faculty, Courses and Degree Programs, starting from the hero.
+chart | Where organic search traffic comes from | Share of the school’s organic search traffic, by keyword
+bar | trinity university business school | 41.66
+bar | trinity university mba | 16.66
+bar | michael neidorff | 11.45
+bar | trinity study abroad | 9.37
+bar | trinity accounting | 4.16
+source | Independent agency audit of the Neidorff School of Business website, Trinity University
+```
 
 ```insights
 San Antonio culture | The site under-represented the city and campus culture that the brand campaign leaned on.
@@ -89,7 +90,9 @@ Program page consistency | Program pages had drifted apart from each other with 
 Frustrating navigation | Users struggled to move between schools, departments, and programs.
 ```
 
-==It’s great knowing all the research that has already been done to find out what is wrong with our site, however what we need to know most is the present material. How do our users currently react to the site? What perspectives utilize the site most?==
+It’s great knowing all the research that has already been done to find out what is wrong with our site, however what we need to know most is the present material.
+
+==How do our users currently react to the site? What perspectives utilize the site most?==
 
 We discover this within journey mapping.
 
@@ -97,11 +100,11 @@ We discover this within journey mapping.
 
 **I built an AI agent that used our journey maps to audit all 4,000+ pages on the site, cutting the audit timeline in half.**
 
-![](https://media.kaelub.com/Trinity-Redesign/j1.jpg "still 877/670")
-![](https://media.kaelub.com/Trinity-Redesign/j5.jpg)
+![](https://media.kaelub.com/Trinity-Redesign/j1.jpg "still 877/714")
+![](https://media.kaelub.com/Trinity-Redesign/j5.jpg "873/624")
 
-![](https://media.kaelub.com/Trinity-Redesign/j2.jpg "still 877/434")
-![](https://media.kaelub.com/Trinity-Redesign/j3.jpg)
+![](https://media.kaelub.com/Trinity-Redesign/j2.jpg "still 864/422")
+![](https://media.kaelub.com/Trinity-Redesign/j3.jpg "877/446")
 
 ![Journey maps for each perspective that uses our site.](https://media.kaelub.com/Trinity-Redesign/j4.jpg "still 873/405")
 
@@ -127,6 +130,8 @@ How might we redesign the programs, departments, and schools of the Trinity.edu 
 
 ## Our Philosophies
 
+> Outcomes first, and honesty over marketing.
+
 At first, the schools pages had to keep using the old components, due to budget and leadership priorities. But over the months of redesigning schools, programs, and departments, leadership changed and the mission became to completely redo every component in the Drupal system. It was fair game. So the wireframes contain a mix of old elements and new ones.
 
 ![Wireframes of the design following these philosophies](https://media.kaelub.com/Trinity-Redesign/wireframes.jpg "still 1587/1396")
@@ -148,6 +153,8 @@ We stray away from fully marketed pages almost immediately, right after the user
 Users also want personal anecdotes, so I include videos or photos of alumni and current students participating in the activities the schools put on.
 
 ## Reflection
+
+> Never finished, but the direction carried forward.
 
 Unfortunately, the designs were never fully completed, due to the change in direction of the project. The mobile formats were finished; the desktop versions were not.
 

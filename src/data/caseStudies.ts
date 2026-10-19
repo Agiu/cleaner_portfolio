@@ -1,4 +1,5 @@
 import { parseCaseStudy, type CaseStudySection } from '../lib/caseStudyMarkdown'
+import { isProtected, unlocked } from '../lib/protectedPages'
 
 export type { CaseStudySection }
 
@@ -28,11 +29,25 @@ export type CaseStudy = {
   videoStart?: number
   /** Credit shown in the hero's bottom-right corner, for a video someone else made. */
   videoCredit?: string
+  /** A line set large in the display type at the foot of the case study's hero. */
+  heroLine?: string
   /** An animated SVG (a public path) laid over the image: it plays on its own as the case study
    *  hero, and only while hovered on the Work page card, where `image` is its still first frame. */
   animation?: string
   /** A slight drop shadow under the Work page card's text, for a hero that's bright under the title. */
   inkShadow?: boolean
+  /** Not ready to show: its card is shown with a lock and doesn't open, and its page redirects
+   *  to Work. */
+  locked?: boolean
+  /** Behind a password: its page and sidebar details live in src/content/protected, encrypted at
+   *  build time; the study opens only once unlocked from the Work page's password modal
+   *  (src/lib/protectedPages.ts). Set from the folder. */
+  protected?: boolean
+  /** 'v2': the case study page uses the new section layouts (Figma 495:77), on trial. */
+  layout?: 'v2'
+  /** Opens this address instead of the case study page: a site outside this app (a prebuilt one in
+   *  public/), faded into from the card. `color` is that site's ground, for the fade. */
+  href?: { url: string; color: string }
   /** Arrow-link rows under the summary in the sidebar, styled like Resume and LinkedIn. */
   links?: { label: string; href: string }[]
   outcomes: string[]
@@ -44,8 +59,9 @@ export type CaseStudy = {
   sections: CaseStudySection[]
 }
 
-// Page content lives in Markdown, one file per study, matched by slug. The sidebar details
-// (title, year, summary, outcomes, team, advisors, hero) stay in this file.
+// Page content lives in Markdown, one file per study, matched by slug; a study behind a password
+// keeps its page in src/content/protected instead. The sidebar details (title, year, summary,
+// outcomes, team, advisors, hero) stay in this file.
 const pages = import.meta.glob<string>('../content/work/*.md', { query: '?raw', import: 'default', eager: true })
 const pageFor = (slug: string) => parseCaseStudy(pages[`../content/work/${slug}.md`] ?? '')
 
@@ -66,6 +82,7 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     mediaRatio: 593 / 1090,
     image: 'https://media.kaelub.com/WOS/Cover.jpg',
     links: [{ label: 'Live Site', href: 'https://kaelub.com/who' }],
+    href: { url: '/who/', color: '#f4f4f2' }, // the card opens the live site, on its paper
     outcomes: [
       'Built a Python and JavaScript scraper for King County’s parcel viewer, since the ownership dataset is paywalled.',
       'Automated parcel collection with Claude, turning two days of mapping South Lake Union into 30 minutes.',
@@ -76,6 +93,7 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
   },
   {
     slug: 'xbox',
+    layout: 'v2',
     title: 'Xbox Arcade',
     category: 'Product Design',
     year: '2026',
@@ -97,29 +115,24 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     ],
   },
   {
+    // Under NDA: only the card is public. Its page and sidebar details are encrypted from
+    // src/content/protected (foreflight.md and foreflight.json) and open with a password.
     slug: 'foreflight',
-    title: 'ForeFlight',
+    layout: 'v2',
+    title: 'ForeFlight (NDA)',
     category: 'Design Engineering',
     year: '2024',
-    summary:
-      'A summer as a software engineer intern on the debrief team, most importantly building a data-heavy system that links flight telemetry to pilots’ logbooks.',
+    summary: 'Client work under NDA. Enter the password to read it.',
     mediaSide: 'left',
     mediaRatio: 593 / 1090,
-    image: foreflight('hero.jpg'),
-    outcomes: [
-      'Shipped bug fixes to the digital logbook and flight-plan review flows, sourced from support tickets and pilot session recordings.',
-      'Led engineering on a Track Log and Logbook communication system, auto-filling flight time, route, and aircraft telemetry into an archival logbook.',
-      'Partnered with product design on the review and confirm flow pilots use to approve an auto-matched entry, covering touch-and-goes, diversions, and multi-leg flights.',
-    ],
+    image: foreflight('hero-night.jpg'), // an airliner overhead in night fog, rendered for this card
+    outcomes: [],
     team: [],
-    advisors: [
-      { name: 'Jason Cooper', role: 'Engineering Manager', linkedin: '' },
-      { name: 'Haley Nelson', role: 'Senior Product Designer', linkedin: '' },
-      { name: 'Jeremy Miller', role: 'Staff Product Designer', linkedin: '' },
-    ],
+    advisors: [],
   },
   {
     slug: 'audio',
+    layout: 'v2',
     title: 'Project Open',
     category: 'Product Design',
     year: '2025',
@@ -134,11 +147,18 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
       'Contributed to nearly 30 trials of user testing to adjust designs for over 94 potential ears.',
       'Developed a branding and pitch video demonstrating the headphones’ interactions.',
     ],
-    team: ['Caleb Aguiar', 'Alexander Akande', 'Kaiyo Fan', 'Meera Divecha Forespring', 'Hannah Hatchett'],
+    team: [
+      'Caleb Aguiar',
+      { name: 'Alexander Akande', linkedin: 'https://www.linkedin.com/in/alexanderakande/' },
+      { name: 'Kaiyo Fan', linkedin: 'https://www.linkedin.com/in/kaiyofan/' },
+      { name: 'Meera Divecha Forespring', linkedin: 'https://www.linkedin.com/in/meera-divecha-forespring-3439351a2/' },
+      { name: 'Hannah Hatchett', linkedin: 'https://www.linkedin.com/in/hannahlhatchett/' },
+    ],
     advisors: [],
   },
   {
-    slug: 'trinity',
+    slug: 'trinity-edu',
+    layout: 'v2',
     title: 'Trinity University',
     category: 'UX Research',
     year: '2024',
@@ -148,6 +168,7 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     mediaRatio: 615 / 1090,
     image: 'https://media.kaelub.com/Trinity-Redesign/Hero.jpg',
     inkShadow: true, // the title sits over the mockup's white page
+    heroLine: 'Trinity is on the rise, but its digital presence hasn’t caught up.',
     outcomes: [
       'Built five user journey maps (current student, prospective student, job applicant, alumni and donor) from interview data, to surface pain points across Trinity.edu.',
       'Developed an AI auditing agent from those journey maps that reviewed all 4,000+ pages on the site, cutting audit time by months.',
@@ -158,6 +179,7 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
   },
   {
     slug: 'occluded',
+    layout: 'v2',
     title: 'Occluded Forest',
     category: 'Audio Programming',
     year: '2026',
@@ -170,6 +192,7 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
     video: 'https://media.kaelub.com/Occluded/Videohero.mp4',
     videoStart: 15.5,
     videoCredit: 'Video by Hayden Kim Dernbach',
+    heroLine: 'Developing a tangible presence in VR using Unity.',
     outcomes: [
       'Composed a lo-fi soundtrack and acknowledgement cues in Ableton, carrying as much sub-bass as the headset could take without rattling.',
       'Built trigger boxes along the mushroom path in Unity that play a one-time cue when the player finds a deer.',
@@ -188,6 +211,7 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
   },
   {
     slug: 'autotroph',
+    locked: true, // still in progress
     title: 'autotroph games',
     category: 'Web Design',
     year: '2026',
@@ -209,9 +233,25 @@ const studies: Omit<CaseStudy, 'sections'>[] = [
   },
 ]
 
-export const caseStudies: CaseStudy[] = studies.map((study) => ({ ...study, sections: pageFor(study.slug) }))
+export const caseStudies: CaseStudy[] = studies.map((study) =>
+  isProtected(study.slug) ? { ...study, protected: true, sections: [] } : { ...study, sections: pageFor(study.slug) },
+)
+
+/** A protected study with its decrypted page and details, once unlocked; null while it's locked. */
+export const openCaseStudy = (study: CaseStudy): CaseStudy | null => {
+  if (!study.protected) return study
+  const open = unlocked(study.slug)
+  return open ? { ...study, ...(open.details as Partial<CaseStudy>), sections: open.sections } : null
+}
 
 export const findCaseStudy = (slug: string | undefined) => caseStudies.find((s) => s.slug === slug)
+
+/** Up to `count` other open studies to read next: the ones after this one in order, wrapping. */
+export const nextCaseStudies = (slug: string, count = 2) => {
+  const at = caseStudies.findIndex((s) => s.slug === slug)
+  const after = [...caseStudies.slice(at + 1), ...caseStudies.slice(0, at)]
+  return after.filter((s) => !s.locked).slice(0, count)
+}
 
 export const profile = {
   name: 'Caleb Aguiar',

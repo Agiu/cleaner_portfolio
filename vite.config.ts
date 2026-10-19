@@ -1,5 +1,6 @@
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { protectedPages } from './scripts/protected-pages.mjs'
 
 /**
  * Prebuilt apps in public/ (e.g. public/who, Who Owns Seattle) serve their own index.html.
@@ -16,8 +17,13 @@ const publicAppIndexes = (dirs: string[]): Plugin => ({
   },
 })
 
-export default defineConfig({
-  plugins: [react(), publicAppIndexes(['who', 'who/explore'])],
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    react(),
+    publicAppIndexes(['who', 'who/explore']),
+    // Case studies behind a password: src/content/protected, keyed by CASE_STUDY_PASSWORD_<SLUG>.
+    protectedPages({ dir: 'src/content/protected', env: loadEnv(mode, '.', 'CASE_STUDY_PASSWORD_') }),
+  ],
   // maplibre's worker (the Who Owns Seattle hero) is an ES module that imports a shared chunk.
   worker: { format: 'es' },
-})
+}))

@@ -45,7 +45,7 @@ function highlight(line: string, lang: string | undefined): ReactNode[] {
 }
 
 /** A case study code listing: a header bar (file name, language, copy) over numbered lines. */
-export function CodeBlock({ text, lang, file }: { text: string; lang?: string; file?: string }) {
+export function CodeBlock({ text, lang, file, still = false }: { text: string; lang?: string; file?: string; still?: boolean }) {
   const [copied, setCopied] = useState(false)
   const language = lang ? (LANGUAGES[lang.toLowerCase()] ?? lang) : undefined
   const lines = text.replace(/\n+$/, '').split('\n')
@@ -69,7 +69,9 @@ export function CodeBlock({ text, lang, file }: { text: string; lang?: string; f
           {copied ? 'Copied' : 'Copy'}
         </button>
       </figcaption>
-      <pre className="code-block-body" data-lenis-prevent>
+      {/* A scrolling listing keeps the wheel to itself; a `still` one (the v2 code panel shows it
+          whole) leaves it to the page's smooth scroll. */}
+      <pre className="code-block-body" data-lenis-prevent={still ? undefined : true}>
         <code>
           {lines.map((line, i) => (
             <span key={i} className="code-line">

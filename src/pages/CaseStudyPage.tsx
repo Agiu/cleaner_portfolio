@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import divider from '../assets/divider.svg'
 import { Arrow } from '../components/Arrow'
@@ -7,19 +7,52 @@ import { fitsNoteBeside, isWidePrototype, Prototype } from '../components/blocks
 import { CodeBlock } from '../components/CodeBlock'
 import { heroScenes } from '../components/heroes'
 import { MediaBlock } from '../components/MediaBlock'
+import { SheetMarks } from '../components/SheetMarks'
 import { ArrowLink } from '../components/Profile'
-import { findCaseStudy, type Advisor, type CaseStudy, type CaseStudySection } from '../data/caseStudies'
+import { CaseStudyCompact } from '../components/CaseStudyCompact'
+import { findCaseStudy, nextCaseStudies, openCaseStudy, type Advisor, type CaseStudy, type CaseStudySection } from '../data/caseStudies'
 import type { SectionBlock } from '../lib/caseStudyMarkdown'
 import { gsap, ScrollTrigger, useGSAP } from '../lib/gsap'
 import { fadeOutPage, finishExpand } from '../lib/pageTransition'
+import { unlocked, unlockRemembered } from '../lib/protectedPages'
 import { useIntro } from '../lib/useIntro'
 import { scrollToTarget } from '../lib/useSmoothScroll'
+
+const PHONE = '(max-width: 899px)'
+const watchPhone = (change: () => void) => {
+  const query = window.matchMedia(PHONE)
+  query.addEventListener('change', change)
+  return () => query.removeEventListener('change', change)
+}
+/** Whether the page is in its phone layout (the stylesheet's 899px breakpoint). */
+const usePhone = () => useSyncExternalStore(watchPhone, () => window.matchMedia(PHONE).matches)
 
 export function CaseStudyPage() {
   const { slug } = useParams()
   const study = findCaseStudy(slug)
-  if (!study) return <Navigate to="/" replace />
-  return <CaseStudyView key={study.slug} study={study} />
+  if (!study || study.locked) return <Navigate to="/" replace />
+  return study.protected ? <ProtectedCaseStudy key={study.slug} study={study} /> : <CaseStudyView key={study.slug} study={study} />
+}
+
+/**
+ * A study behind a password opens only once unlocked (from the Work page's modal, or with the
+ * password this browser remembers). Otherwise its URL sends you to the Work page, which asks.
+ */
+function ProtectedCaseStudy({ study }: { study: CaseStudy }) {
+  const [state, setState] = useState<'checking' | 'open' | 'locked'>(() => (unlocked(study.slug) ? 'open' : 'checking'))
+  useEffect(() => {
+    if (state !== 'checking') return
+    let live = true
+    unlockRemembered(study.slug).then((ok) => live && setState(ok ? 'open' : 'locked'))
+    return () => {
+      live = false
+    }
+  }, [state, study.slug])
+
+  const open = state === 'open' ? openCaseStudy(study) : null
+  if (open) return <CaseStudyView study={open} />
+  if (state === 'locked') return <Navigate to="/" replace state={{ unlock: study.slug }} />
+  return null
 }
 
 /** Case study (Figma "Desktop - 6"): details sidebar, image + scrollable section on the right. */
@@ -34,6 +67,7 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
   // A study whose hero is a scene (heroes/) shows it over its still image.
   const HeroScene = heroScenes[study.slug]
   useIntro(root)
+  const phone = usePhone()
 
   // Hold the expanded overlay (which may be showing the card's playing video) until the hero's
   // video is running underneath it, so the handover doesn't flash back to the still.
@@ -125,7 +159,9 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
         </div>
 
         <div className="study-swap">
-          <div className="study-details" data-lenis-prevent>
+          {/* A scroll box of its own in the desktop sidebar, so it keeps the wheel; on a phone it runs
+              in the page's flow and leaves the wheel to the page's smooth scroll. */}
+          <div className="study-details" data-lenis-prevent={phone ? undefined : true}>
             {study.outcomes.length > 0 && <DetailGroup title="Outcomes" items={study.outcomes} spacious />}
             {study.links && (
               <ul className="sidebar-links study-links">
@@ -172,6 +208,11 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
       <main className="study-main">
         <MediaBlock className="study-hero" src={HeroScene ? study.image : (study.animation ?? study.image)} video={study.video} videoStart={study.videoStart} withFloat skipReveal={expanded}>
           {HeroScene && <HeroScene />}
+          {study.heroLine && (
+            <div className="study-hero-line">
+              <p data-split>{study.heroLine}</p>
+            </div>
+          )}
           {study.videoCredit && (
             <p className="media-credit">
               {/* Stacked copies, each blending over the last: strip the colour from the video behind,
@@ -185,9 +226,20 @@ function CaseStudyView({ study }: { study: CaseStudy }) {
             </p>
           )}
         </MediaBlock>
-        {study.sections.map((section) => (
-          <Section key={section.id} section={section} />
-        ))}
+        {study.sections.map((section) =>
+          study.layout === 'v2' ? <SectionV2 key={section.id} section={section} /> : <Section key={section.id} section={section} />,
+        )}
+        {/* Two studies to read next, as the Work page's More work cards. */}
+        <section className="cs-more study-more" aria-labelledby="study-more-title">
+          <h2 id="study-more-title" className="cs-more-title">
+            More work
+          </h2>
+          <div className="cs-more-grid">
+            {nextCaseStudies(study.slug).map((next) => (
+              <CaseStudyCompact key={next.slug} study={next} fade />
+            ))}
+          </div>
+        </section>
       </main>
     </div>
   )
@@ -255,7 +307,7 @@ function Section({ section }: { section: CaseStudySection }) {
     else runs.push([block])
   }
   // A section that opens on images still gets its heading first.
-  if (!runs.length || isWide(runs[0][0])) runs.unshift([])
+  if (!runs.length || isWide(runs[0][0]) || isSide(runs[0][0])) runs.unshift([])
 
   return (
     <section id={section.id} className="study-section">
@@ -266,7 +318,10 @@ function Section({ section }: { section: CaseStudySection }) {
             <div key={i} className={`study-section-text study-section-text--side${i > 0 ? ' study-section-text--more' : ''}`}>
               <div className="study-side-media" style={first.aspect ? ({ '--aspect': first.aspect } as React.CSSProperties) : undefined}>
                 {first.images.map((img, j) => (
-                  <MediaBlock key={j} src={img.src} alt={img.alt} still={first.still} />
+                  <figure key={j} className="study-figure">
+                    <MediaBlock src={img.src} still={first.still} className={first.clear ? 'media--clear' : ''} />
+                    {img.alt && <figcaption>{img.alt}</figcaption>}
+                  </figure>
                 ))}
               </div>
               <div className="study-section-copy">
@@ -316,6 +371,350 @@ function Section({ section }: { section: CaseStudySection }) {
         )
       })}
     </section>
+  )
+}
+
+type MediaRow = Extract<SectionBlock, { kind: 'media' }>
+
+/** One image row's images as v2 figures, each with its caption as a note underneath. */
+function V2Figures({ row, className }: { row: MediaRow; className: string }) {
+  return row.images.map((img, j) => (
+    <figure key={j} className={className} style={ratioStyle(img.aspect ?? row.aspect)}>
+      <MediaBlock src={img.src} still={row.still} className={row.clear ? 'media--clear' : ''} />
+      {img.alt && <figcaption className="sv-note">{img.alt}</figcaption>}
+    </figure>
+  ))
+}
+
+/** An image's ratio for the frame (--aspect) and, as a number, for its share of the row. */
+const ratioStyle = (aspect?: string) => {
+  const [w, h] = (aspect ?? '').split('/').map(Number)
+  return w > 0 && h > 0 ? ({ '--aspect': aspect, '--aspect-n': w / h } as React.CSSProperties) : undefined
+}
+
+/** A row of one image taller than it is wide. */
+const isPortrait = (row: MediaRow) => {
+  const [w, h] = (row.aspect ?? '').split('/').map(Number)
+  return row.images.length === 1 && w > 0 && h > 0 && w / h < 1
+}
+/** A paragraph that's a single ==highlight== and nothing else reads as a statement of its own. */
+const isStatement = (block: SectionBlock) => block.kind === 'paragraph' && /^<mark>(?:(?!<\/?mark>)[\s\S])*<\/mark>$/.test(block.html.trim())
+
+type V2Run =
+  | { kind: 'text'; blocks: SectionBlock[]; afterMedia: boolean }
+  | { kind: 'statement'; html: string }
+  | { kind: 'media'; row: MediaRow }
+  | { kind: 'half' | 'sticky'; row: MediaRow; blocks: SectionBlock[] }
+  | { kind: 'wide'; block: Extract<SectionBlock, { kind: 'prototype' }> }
+  | { kind: 'feature'; blocks: SectionBlock[] }
+  | { kind: 'impact'; blocks: SectionBlock[] }
+  | { kind: 'panel'; variant: 'tracks' | 'code'; intro: SectionBlock[]; block: SectionBlock }
+
+/**
+ * The subheading closing the run before a panel (with one paragraph after it, if there is one),
+ * taken out of that run to introduce the panel instead.
+ */
+const pullIntro = (run: V2Run | undefined): SectionBlock[] => {
+  if (run?.kind !== 'text' && run?.kind !== 'half' && run?.kind !== 'sticky') return []
+  const { blocks } = run
+  const n = blocks.length
+  if (blocks[n - 1]?.kind === 'subheading') return blocks.splice(n - 1)
+  if (blocks[n - 2]?.kind === 'subheading' && blocks[n - 1]?.kind === 'paragraph') return blocks.splice(n - 2)
+  return []
+}
+
+/** Statement lists (```hmw, rules, questions) stand as a block of their own, not a note in the copy. */
+const isFeature = (block: SectionBlock) => block.kind === 'prototype' && ['hmw', 'rules', 'questions'].includes(block.name)
+
+/**
+ * One ## section in the v2 layouts (Figma 495:77), on trial for Project Open:
+ *  - text: the section's title as a small grey label over its lead in bold, then the copy, in
+ *    one centred column. Copy that carries on after an image row sits in a column to the right.
+ *  - an image row: edge to edge with a small inset, images side by side at their own
+ *    proportions (so heights match), each caption a note under its image.
+ *  - half: a portrait image fills half the block, beside the copy that follows it.
+ *  - sticky ("side"): a small image held in view beside the copy that follows it.
+ *  - a paragraph that's only a ==highlight==: a statement of its own (see Statement).
+ *  - wide prototypes (quotes, 3D model, video, the academic slug) run full width; the academic
+ *    slug always opens its section, above the label.
+ *  - a statement list (```hmw…) is a block of its own, with a ```button straight after it beneath
+ *    (see Feature).
+ *  - ```stats get a dark panel of their own (see Impact), taking the subheading just before them
+ *    and a ```button just after.
+ *  - audio tracks and code get a dark panel too, introduced by the subheading (and paragraph)
+ *    just before them: the tracks beside their intro, the code beneath it.
+ */
+function SectionV2({ section }: { section: CaseStudySection }) {
+  const runs: V2Run[] = []
+  for (const block of section.blocks) {
+    const last = runs[runs.length - 1]
+    if (block.kind === 'media' && !block.side && isPortrait(block)) runs.push({ kind: 'half', row: block, blocks: [] })
+    else if (block.kind === 'media' && block.side) runs.push({ kind: 'sticky', row: block, blocks: [] })
+    else if (block.kind === 'media') runs.push({ kind: 'media', row: block })
+    else if (block.kind === 'prototype' && isWidePrototype(block.name)) runs.push({ kind: 'wide', block })
+    // A note straight after a wide block (a video, say) is its caption, even with a blank line between.
+    else if (block.kind === 'note' && last?.kind === 'wide' && !last.block.aside) last.block = { ...last.block, aside: block.html }
+    else if (isFeature(block)) runs.push({ kind: 'feature', blocks: [block] })
+    else if (block.kind === 'prototype' && block.name === 'stats') {
+      // Stats take their own dark panel, with the subheading that introduces them.
+      const heading = last?.kind === 'text' && last.blocks[last.blocks.length - 1]?.kind === 'subheading' ? last.blocks.pop()! : null
+      runs.push({ kind: 'impact', blocks: heading ? [heading, block] : [block] })
+    } else if (block.kind === 'audio' || block.kind === 'code') {
+      // Audio tracks and code take a dark panel, introduced by the subheading before them.
+      const intro = pullIntro(last)
+      if (last?.kind === 'text' && !last.blocks.length && runs.length > 1) runs.pop()
+      runs.push({ kind: 'panel', variant: block.kind === 'audio' ? 'tracks' : 'code', intro, block })
+    } else if ((last?.kind === 'feature' || last?.kind === 'impact') && block.kind === 'prototype' && block.name === 'button')
+      last.blocks.push(block)
+    else if ((last?.kind === 'half' || last?.kind === 'sticky') && !isStatement(block)) last.blocks.push(block)
+    else if (isStatement(block)) runs.push({ kind: 'statement', html: block.kind === 'paragraph' ? block.html : '' })
+    else if (last?.kind === 'text') last.blocks.push(block)
+    else runs.push({ kind: 'text', blocks: [block], afterMedia: last?.kind === 'media' })
+  }
+  // The label heads the lead, wherever it falls (after an opening image, say). Without a lead the
+  // section still opens on its label, even when its first block is an image.
+  const leadRun = runs.find((run) => run.kind === 'text' && run.blocks.some((block) => block.kind === 'lead'))
+  if (!leadRun && (runs[0]?.kind !== 'text' || runs[0].afterMedia)) runs.unshift({ kind: 'text', blocks: [], afterMedia: false })
+  // The academic slug says where the work was done, so it goes above the section's label.
+  const slug = runs.findIndex((run) => run.kind === 'wide' && run.block.name === 'academic')
+  if (slug > 0) runs.unshift(...runs.splice(slug, 1))
+
+  const opening = leadRun ?? runs.find((run) => run.kind === 'text')
+  const copy = (blocks: SectionBlock[]) => blocks.map((block, j) => <TextBlock key={j} block={block} />)
+  return (
+    <section id={section.id} className="study-section study-section--v2">
+      {runs.map((run, i) => {
+        switch (run.kind) {
+          case 'text':
+            return (
+              <div key={i} className={`sv-text${run.afterMedia ? ' sv-text--after' : ''}`}>
+                {run === opening && <h2 className="sv-label">{section.title}</h2>}
+                {copy(run.blocks)}
+              </div>
+            )
+          case 'statement':
+            return <Statement key={i} html={run.html} />
+          case 'feature':
+            return <Feature key={i}>{copy(run.blocks)}</Feature>
+          case 'impact':
+            return <Impact key={i} blocks={run.blocks} />
+          case 'panel':
+            return (
+              <Feature key={i} className={`sv-panel sv-panel--${run.variant}`}>
+                {run.intro.length > 0 && <div className="sv-panel-intro">{copy(run.intro)}</div>}
+                {run.block.kind === 'code' ? (
+                  <CodeBlock text={run.block.text} lang={run.block.lang} file={run.block.file} still />
+                ) : (
+                  <TextBlock block={run.block} />
+                )}
+              </Feature>
+            )
+          case 'media':
+            return (
+              <div key={i} className="sv-media">
+                <V2Figures row={run.row} className="sv-figure" />
+              </div>
+            )
+          case 'half':
+            return (
+              <div key={i} className={`sv-half${run.row.right ? ' sv-half--right' : ''}`}>
+                <div className="sv-half-media">
+                  <MediaBlock src={run.row.images[0].src} still={run.row.still} className={run.row.clear ? 'media--clear' : ''} />
+                </div>
+                <div className="sv-half-copy">
+                  {copy(run.blocks)}
+                  {run.row.images[0].alt && <p className="sv-note">{run.row.images[0].alt}</p>}
+                </div>
+              </div>
+            )
+          case 'sticky':
+            return (
+              <div key={i} className={`sv-sticky${run.row.right ? ' sv-sticky--right' : ''}`}>
+                <div className="sv-sticky-media">
+                  <V2Figures row={run.row} className="sv-figure" />
+                </div>
+                <div className="sv-sticky-copy">{copy(run.blocks)}</div>
+              </div>
+            )
+          case 'wide':
+            return (
+              <div key={i} className="study-proto sv-wide">
+                <Prototype name={run.block.name} content={run.block.content} />
+                {run.block.aside && <p className="sv-note" dangerouslySetInnerHTML={{ __html: run.block.aside }} />}
+              </div>
+            )
+        }
+      })}
+    </section>
+  )
+}
+
+/**
+ * A dark panel, set like a drawing sheet (SheetMarks), for a statement list and its button, or
+ * (with a `className`) audio tracks or code and their intro. Its contents pan in, one after
+ * another, as the panel scrolls into view and back out above it. Reduced motion shows them in place.
+ */
+function Feature({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  const root = useRef<HTMLDivElement>(null)
+  useGSAP(
+    () => {
+      gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
+        const pan = gsap.from(gsap.utils.selector(root)('.sv-feature-copy > *'), {
+          y: 40,
+          autoAlpha: 0,
+          stagger: 0.12,
+          paused: true,
+        })
+        ScrollTrigger.create({
+          trigger: root.current,
+          start: 'top 75%',
+          onEnter: () => pan.timeScale(1).play(),
+          onLeaveBack: () => pan.timeScale(1.6).reverse(),
+        })
+      })
+    },
+    { scope: root },
+  )
+  return (
+    <div ref={root} className={`sv-feature ${className}`.trim()}>
+      <div className="sv-feature-panel">
+        <SheetMarks />
+        <div className="sv-feature-copy">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * A paragraph that's only a highlight, given room: large, in the display weight, its words filling
+ * in from grey to ink as it scrolls up the page (scrubbed, so they empty again going back up).
+ * Reduced motion shows it inked.
+ */
+function Statement({ html }: { html: string }) {
+  const root = useRef<HTMLParagraphElement>(null)
+  const words = html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .split(/\s+/)
+    .filter(Boolean)
+  useGSAP(
+    () => {
+      gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.from(gsap.utils.selector(root)('.sv-statement-word'), {
+          opacity: 0.18,
+          stagger: 0.1,
+          ease: 'none',
+          scrollTrigger: { trigger: root.current, start: 'top 85%', end: 'bottom 50%', scrub: 0.5 },
+        })
+      })
+    },
+    { scope: root },
+  )
+  return (
+    <p ref={root} className="sv-statement">
+      {words.map((word, i) => (
+        <span key={i} className="sv-statement-word">
+          {word}{' '}
+        </span>
+      ))}
+    </p>
+  )
+}
+
+/**
+ * A stat's figure split for counting: "5,400" -> 5400, "4 days" -> 4 and " days", "76.4%" -> 76.4
+ * (one decimal place) and "%", "~500" -> "~" and 500.
+ */
+const figure = (value: string) => {
+  const match = /^(\D*?)(\d[\d,]*(?:\.\d+)?)(.*)$/.exec(value.trim())
+  if (!match) return null
+  const [, prefix, digits, unit] = match
+  return { prefix, n: Number(digits.replace(/,/g, '')), places: digits.split('.')[1]?.length ?? 0, unit }
+}
+const formatFigure = (n: number, places: number) => n.toLocaleString('en-US', { minimumFractionDigits: places, maximumFractionDigits: places })
+
+/**
+ * Stats on the statement lists' dark drawing sheet: the subheading that introduces them in light
+ * ink, then the figures in the display type, large, across the whole panel, each counting up from
+ * zero as the panel scrolls into view (and back down above it). A button follows beneath.
+ * Reduced motion shows the figures as written.
+ */
+function Impact({ blocks }: { blocks: SectionBlock[] }) {
+  const root = useRef<HTMLDivElement>(null)
+  const heading = blocks.find((block) => block.kind === 'subheading')
+  const stats = blocks.find((block) => block.kind === 'prototype' && block.name === 'stats')
+  const rest = blocks.filter((block) => block !== heading && block !== stats)
+  const rows = stats?.kind === 'prototype' ? stats.content.split('\n').map((line) => line.split('|').map((part) => part.trim())).filter(([value]) => value) : []
+
+  useGSAP(
+    () => {
+      gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
+        const q = gsap.utils.selector(root)
+        const tl = gsap
+          .timeline({ paused: true })
+          .from(q('.sv-impact-title'), { y: 30, autoAlpha: 0, duration: 1 }, 0)
+          .from(q('.sv-impact-stat'), { y: 40, autoAlpha: 0, stagger: 0.12, duration: 1 }, 0.15)
+          .from(q('.sv-impact-rule'), { scaleX: 0, transformOrigin: '0 50%', stagger: 0.12, duration: 1.2 }, 0.15)
+          .from(q('.sv-impact-copy > *'), { y: 20, autoAlpha: 0, duration: 0.8 }, 0.6)
+        const counters = q<HTMLElement>('.sv-impact-n')
+        counters.forEach((el, i) => {
+          const to = Number(el.dataset.to)
+          const places = Number(el.dataset.places)
+          const count = { n: 0 }
+          el.textContent = '0' // each counter waits at zero for its turn
+          tl.to(count, { n: to, duration: 1.6, ease: 'power3.out', onUpdate: () => (el.textContent = formatFigure(places ? count.n : Math.round(count.n), places)) }, 0.25 + i * 0.12)
+        })
+        ScrollTrigger.create({
+          trigger: root.current,
+          start: 'top 75%',
+          onEnter: () => tl.timeScale(1).play(),
+          onLeaveBack: () => tl.timeScale(1.6).reverse(),
+        })
+        // Put the written figures back if motion is turned off.
+        return () => counters.forEach((el) => (el.textContent = formatFigure(Number(el.dataset.to), Number(el.dataset.places))))
+      })
+    },
+    { scope: root },
+  )
+
+  return (
+    <div ref={root} className="sv-feature sv-impact">
+      <div className="sv-feature-panel sv-impact-panel">
+        <SheetMarks />
+        {heading?.kind === 'subheading' && <h3 className="sv-impact-title" dangerouslySetInnerHTML={{ __html: heading.html }} />}
+        <dl className="sv-impact-stats">
+          {rows.map(([value, label], i) => {
+            const fig = figure(value)
+            return (
+              <div key={i} className="sv-impact-stat">
+                <span className="sv-impact-rule" aria-hidden="true" />
+                <dd>
+                  {fig ? (
+                    <>
+                      {fig.prefix && <span className="sv-impact-unit sv-impact-unit--prefix">{fig.prefix}</span>}
+                      <span className="sv-impact-n" data-to={fig.n} data-places={fig.places}>
+                        {formatFigure(fig.n, fig.places)}
+                      </span>
+                      {fig.unit && <span className="sv-impact-unit">{fig.unit}</span>}
+                    </>
+                  ) : (
+                    value
+                  )}
+                </dd>
+                <dt>{label}</dt>
+              </div>
+            )
+          })}
+        </dl>
+        {rest.length > 0 && (
+          <div className="sv-impact-copy">
+            {rest.map((block, j) => (
+              <TextBlock key={j} block={block} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 

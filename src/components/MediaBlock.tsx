@@ -30,6 +30,9 @@ type Props = {
  * parallax while it passes through the viewport, plus a one-shot clip/scale
  * reveal when it enters.
  */
+/** How long a hover video takes to fade in and out; matches .media-video's transition. */
+export const VIDEO_FADE_MS = 600
+
 export function MediaBlock({ src, alt = '', className = '', withFloat = false, skipReveal = false, still = false, video, videoStart, play, children }: Props) {
   const root = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -39,11 +42,14 @@ export function MediaBlock({ src, alt = '', className = '', withFloat = false, s
   const wantsRef = useRef(wants)
   wantsRef.current = wants
 
+  // Stopping, it keeps playing while it fades back to the still (.media-video), then pauses.
+  const pauseTimer = useRef(0)
   const sync = () => {
     const v = videoRef.current
     if (!v) return
+    clearTimeout(pauseTimer.current)
     if (wantsRef.current && inView.current) v.play().catch(() => {})
-    else v.pause()
+    else pauseTimer.current = window.setTimeout(() => v.pause(), VIDEO_FADE_MS)
   }
   useEffect(sync, [wants])
 

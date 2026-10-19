@@ -1,7 +1,6 @@
 import { caseStudies } from '../data/caseStudies'
 import { CaseStudy } from './CaseStudy'
 import { CaseStudyCompact } from './CaseStudyCompact'
-import { WorkEnd } from './WorkEnd'
 
 /** How many studies get the full-size row; the rest drop into the condensed grid below. */
 const FULL_ROWS = 3
@@ -31,8 +30,6 @@ export function CaseStudyList() {
           </div>
         </section>
       )}
-
-      <WorkEnd />
     </>
   )
 }
