@@ -12,7 +12,7 @@ For many friend groups, the more noise there is, the more hassle it takes to coo
 
 Gamers use plenty of platforms to talk and share games, but one stays constant: Discord. Each server acts as a home base for a friend group — the natural place to keep discovery from fragmenting across a dozen apps — so we met players where they already are.
 
-![](/work/xbox/discord.jpg "still 2200/1169")
+![](/work/xbox/hero.jpg "1920/962")
 
 ## Solution
 
