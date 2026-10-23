@@ -197,15 +197,18 @@ export function HomeHeader() {
       gsap.ticker.add(tick)
 
       if (entrancePlayed) {
-        gsap.set(el, { autoAlpha: 1 })
+        // Coming back to Work: the reel carries on where it was, so it fades in rather than
+        // replaying the scan.
+        gsap.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8, ease: 'power2.out' })
       } else {
+        // The same scan reveal as a case study image (MediaBlock): the clip opens top to bottom.
         gsap.fromTo(
           el,
-          { clipPath: 'inset(4% 4% 4% 4%)', autoAlpha: 0 },
+          { clipPath: 'inset(0% 0% 100% 0%)', autoAlpha: 1 },
           {
             clipPath: 'inset(0% 0% 0% 0%)',
-            autoAlpha: 1,
-            duration: 1.4,
+            duration: 1.5,
+            ease: 'power3.inOut',
             delay: 0.15,
             // Only once it has actually finished: a remount that cuts it short replays it.
             onComplete: () => {
@@ -226,7 +229,7 @@ export function HomeHeader() {
   )
 
   return (
-    <div className="hh-wrap">
+    <div className="hh-wrap" style={{ '--hh-bg': HEADER_BG } as React.CSSProperties}>
       <div ref={root} className="home-header" style={{ backgroundColor: HEADER_BG }}>
         <canvas
           ref={canvas}

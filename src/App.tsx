@@ -9,10 +9,10 @@ import { Films } from './pages/Films'
 import { Resume } from './pages/Resume'
 import { ScrollTrigger } from './lib/gsap'
 import { useRouteScroll } from './lib/useRouteScroll'
-import { useSmoothScroll } from './lib/useSmoothScroll'
+// import { useSmoothScroll } from './lib/useSmoothScroll'
 
 export default function App() {
-  useSmoothScroll()
+  // useSmoothScroll() // Lenis off for testing
   useRouteScroll()
 
   // Web fonts shift line heights after first paint; re-measure once they land.
